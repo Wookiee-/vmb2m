@@ -13,25 +13,149 @@ Multi-instance MBII server manager with plugin system, config generation, and pr
 - MBII updater integration with retry logic
 - Cross-platform: Linux (Debian, Fedora, Arch) and Windows
 
-## Quick start
+---
+
+## Linux Setup
+
+### 1. Install dependencies
 
 ```bash
-./install.sh                          # Installs deps, .NET, symlinks
-cp configs/example.json configs/my_server.json
-nano configs/my_server.json           # Set name, port, passwords, maps
-mbii my_server start                  # Start server
+git clone https://github.com/Wookiee-/vmb2m.git
+cd vmb2m
+./install.sh
 ```
+
+This installs everything needed: Python 3, 32-bit libraries, mimalloc, .NET SDK 6.0, MBII updater files, and the `mbii` command shortcut.
+
+### 2. Configure your server
+
+```bash
+cp configs/example.json configs/my_server.json
+nano configs/my_server.json
+```
+
+Change at minimum:
+- `host_name` — your server name
+- `port` — server port (default 29070)
+- `rcon_password` — choose a secure password
+- `maps.primary` — your map list
+
+The `mbii_path` and `engine` fields auto-detect if left empty.
+
+### 3. Start the server
+
+```bash
+mbii my_server start
+```
+
+The server runs in the foreground. Auto-restarts on crash (up to 5 times). Press Ctrl+C to stop.
+
+### 4. Stop the server
+
+```bash
+mbii my_server stop
+```
+
+---
+
+## Windows Setup
+
+### 1. Install Python 3
+
+Download from https://python.org — check "Add Python to PATH" during install.
+
+### 2. Download the manager
+
+Download or clone the repo, or download the ZIP from GitHub.
+
+### 3. Install .NET SDK 6.0 (required for MBII updates)
+
+Download from: https://dotnet.microsoft.com/en-us/download/dotnet/6.0
+
+Or via winget:
+```
+winget install Microsoft.DotNet.SDK.6
+```
+
+### 4. Configure your server
+
+Copy `configs\example.json` to `configs\my_server.json` and edit it. Set your server name, port, passwords, and maps.
+
+### 5. Start the server
+
+```cmd
+python manager.py my_server start
+```
+
+Press Ctrl+C to stop.
+
+### 6. Stop the server
+
+```cmd
+python manager.py my_server stop
+```
+
+---
 
 ## Commands
 
-| Action | Command |
-|---|---|
-| Start | `mbii <name> start` |
-| Stop | `mbii <name> stop` |
-| Restart | `mbii <name> restart` |
-| Status | `mbii <name> status` |
-| List | `mbii --list` |
-| Update MBII | `mbii --update` |
+| Action | Linux | Windows |
+|---|---|---|
+| Start server | `mbii <name> start` | `python manager.py <name> start` |
+| Stop server | `mbii <name> stop` | `python manager.py <name> stop` |
+| Restart server | `mbii <name> restart` | `python manager.py <name> restart` |
+| Check status | `mbii <name> status` | `python manager.py <name> status` |
+| List instances | `mbii --list` | `python manager.py --list` |
+| Update MBII | `mbii --update` | `python manager.py --update` |
+
+---
+
+## Updating MBII
+
+```bash
+mbii --update
+```
+
+Stops all running instances, runs the MBII CLI updater with automatic retries on failure, then restarts everything.
+
+---
+
+## Multiple servers
+
+Create one JSON file per server in `configs/`:
+
+```bash
+cp configs/example.json configs/eu_west.json
+cp configs/example.json configs/us_east.json
+# Edit each with different ports and settings
+mbii eu_west start
+mbii us_east start
+```
+
+---
+
+## Plugins
+
+Enable in your instance JSON under `"plugins"`:
+
+```json
+"plugins": {
+    "rtvrtm": true,
+    "automessage": {
+        "messages": ["Welcome!"],
+        "interval": 300
+    },
+    "vpnmonitor": {
+        "apikey": "your_iphub_key"
+    }
+}
+```
+
+- `true` — enables with defaults
+- `{ }` — enables with custom settings
+- Omit or set `false` to disable
+
+---
 
 ## Layout
 
@@ -46,21 +170,12 @@ mimalloc/             # mimalloc DLLs (Windows)
 updater/              # MBII CLI updater files
 ```
 
-## Config
+---
 
-Each server has its own JSON in `configs/`. Generated files (server.cfg, map lists, rtvrtm.cfg) go directly into your MBII folder. `mbii_path` and `engine` auto-detect if not set.
-
-## Plugins
-
-Enable in your instance JSON under `"plugins"`. Use `true` for defaults or a dict to override settings. Each plugin lives in its own folder under `plugins/`.
-
-## Installer
-
-`install.sh` detects your distro and installs the correct packages:
+## Distro support
 
 | Distro | 32-bit libs | mimalloc |
 |---|---|---|
 | Debian/Ubuntu | `apt` | `libmimalloc-dev:i386` |
 | Fedora/RHEL | `dnf` | `mimalloc.i686` |
 | Arch | `pacman` | `lib32-mimalloc` |
-| Windows | `install.bat` | DLLs copied to openjk folder |
