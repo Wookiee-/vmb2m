@@ -486,23 +486,36 @@ def generate_rtvrtm_cfg(cfg):
     return out
 
 
-def find_engine():
-    """Auto-detect engine binary."""
-    if IS_WINDOWS:
-        name = "mbiided.x86.exe"
-    else:
-        name = "mbiided.i386"
+def find_engine(cfg=None):
+    """Auto-detect engine binary.
+       Priority: PATH -> /usr/bin -> GameData dir.
+    """
+    name = "mbiided.x86.exe" if IS_WINDOWS else "mbiided.i386"
+
     for p in os.environ.get("PATH", "").split(os.pathsep):
         full = Path(p) / name
         if full.exists():
             return str(full)
+
+    if not IS_WINDOWS:
+        full = Path("/usr/bin") / name
+        if full.exists():
+            return str(full)
+
+    if cfg:
+        mbii = mbii_dir(cfg)
+        gamedata = mbii.parent
+        full = gamedata / name
+        if full.exists():
+            return str(full)
+
     return name
 
 
 def start_engine(cfg):
     engine = cfg["server"].get("engine", "")
     if not engine:
-        engine = find_engine()
+        engine = find_engine(cfg)
         cfg["server"]["engine"] = engine
     port = cfg["server"]["port"]
     game = cfg["server"].get("game", "MBII")
