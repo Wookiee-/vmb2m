@@ -29,6 +29,11 @@ if exist "updater" (
     echo   [OK] Updater files copied
 )
 
+if exist "mimalloc" (
+    xcopy /Y mimalloc\*.dll "%USERPROFILE%\openjk\" >nul 2>&1
+    echo   [OK] mimalloc DLLs copied to openjk\
+)
+
 echo.
 echo ========================================
 echo   Setup complete

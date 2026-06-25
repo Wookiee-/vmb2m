@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Valzhar's MBII Server Manager — Setup (Linux)
+# Valzhar's MBII Manager — Setup (Linux)
 
 set -e
 
@@ -7,36 +7,66 @@ PY="python3"
 SCRIPTPATH="$(cd "$(dirname "$0")" && pwd)"
 
 echo "========================================"
-echo "  Valzhar's MBII Server Manager"
+echo "  Valzhar's MBII Manager"
 echo "========================================"
 echo ""
 
 # ── Python ──
 if ! command -v $PY >/dev/null 2>&1; then
-    echo "ERROR: Python 3 not found.  apt install python3"
+    echo "ERROR: Python 3 not found."
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "  sudo apt-get install python3"
+    elif command -v dnf >/dev/null 2>&1; then
+        echo "  sudo dnf install python3"
+    elif command -v pacman >/dev/null 2>&1; then
+        echo "  sudo pacman -S python"
+    fi
     exit 1
 fi
 echo "  [OK] $($PY --version 2>&1)"
 
-# ── 32-bit libs ──
-if command -v dpkg >/dev/null 2>&1; then
-    for lib in libc6:i386 lib32z1 libstdc++6:i386 libcurl4t64:i386; do
-        if ! dpkg -l "$lib" 2>/dev/null | grep -q "^ii"; then
-            MISSING="$MISSING $lib"
-        fi
-    done
-    if [ -n "$MISSING" ]; then
+# ── Distro detection ──
+if command -v apt-get >/dev/null 2>&1; then
+    PKG="apt"
+elif command -v dnf >/dev/null 2>&1; then
+    PKG="dnf"
+elif command -v pacman >/dev/null 2>&1; then
+    PKG="pacman"
+else
+    PKG=""
+fi
+
+# ── 32-bit libs + mimalloc ──
+case "$PKG" in
+    apt)
+        echo "  [....] Debian/Ubuntu — installing 32-bit libs..."
         sudo dpkg --add-architecture i386 2>/dev/null
         sudo apt-get update -qq
-        sudo apt-get install -y $MISSING
+        sudo apt-get install -y libc6:i386 lib32z1 libstdc++6:i386 libcurl4t64:i386 2>/dev/null || \
+        sudo apt-get install -y libc6:i386 lib32z1 libstdc++6:i386 libcurl4:i386
+        sudo apt-get install -y libmimalloc-dev:i386 2>/dev/null || \
+        sudo apt-get install -y libmimalloc2:i386 2>/dev/null || \
+        echo "  [WARN] mimalloc i386 not found — install manually"
         echo "  [OK] 32-bit libs installed"
-    fi
-
-    if ! dpkg -l libjemalloc2:i386 2>/dev/null | grep -q "^ii"; then
-        sudo apt-get install -y libjemalloc2:i386
-        echo "  [OK] jemalloc installed"
-    fi
-fi
+        ;;
+    dnf)
+        echo "  [....] Fedora/RHEL — installing 32-bit libs..."
+        sudo dnf install -y glibc.i686 libstdc++.i686 libcurl.i686
+        sudo dnf install -y mimalloc.i686 2>/dev/null || \
+        echo "  [WARN] mimalloc.i686 not found — install manually"
+        echo "  [OK] 32-bit libs installed"
+        ;;
+    pacman)
+        echo "  [....] Arch — installing 32-bit libs..."
+        sudo pacman -S --noconfirm lib32-glibc lib32-gcc-libs lib32-curl
+        sudo pacman -S --noconfirm lib32-mimalloc 2>/dev/null || \
+        echo "  [WARN] lib32-mimalloc not found — install manually"
+        echo "  [OK] 32-bit libs installed"
+        ;;
+    *)
+        echo "  [SKIP] Unknown distro — install 32-bit libs + mimalloc manually"
+        ;;
+esac
 
 # ── Symlinks ──
 OPENJK_TARGET="$HOME/openjk"
@@ -71,7 +101,4 @@ echo "  Setup complete"
 echo "========================================"
 echo ""
 echo "  mbii <name> start|stop|restart|status"
-echo "  mbii --update              Update MBII"
-echo ""
-echo "  Update MBII:  mbii --update"
-echo "  or:           python3 manager.py --update"
+echo "  mbii --update"

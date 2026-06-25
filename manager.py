@@ -286,17 +286,20 @@ class LogWatcher:
             self._pm.dispatch(events.Event(events.EVENT_MAP_CHANGE, {"map": map_name}))
 
 
-def find_jemalloc():
+def find_mimalloc():
+    """Find i386 mimalloc library on Linux."""
     if not IS_LINUX:
         return None
     candidates = [
-        "/usr/lib/i386-linux-gnu/libjemalloc.so.2",
-        "/usr/lib/i386-linux-gnu/libjemalloc.so.1",
-        "/usr/lib/libjemalloc.so.2",
-        "/usr/lib/libjemalloc.so.1",
-        "/usr/lib32/libjemalloc.so.2",
-        "/usr/lib32/libjemalloc.so.1",
-        "/usr/lib/libjemalloc.so",
+        "/usr/lib/i386-linux-gnu/libmimalloc.so.2",
+        "/usr/lib/i386-linux-gnu/libmimalloc.so.1",
+        "/usr/lib/i386-linux-gnu/libmimalloc.so",
+        "/usr/lib/libmimalloc.so.2",
+        "/usr/lib/libmimalloc.so.1",
+        "/usr/lib/libmimalloc.so",
+        "/usr/lib32/libmimalloc.so.2",
+        "/usr/lib32/libmimalloc.so.1",
+        "/usr/lib32/libmimalloc.so",
     ]
     for path in candidates:
         if os.path.exists(path):
@@ -306,7 +309,7 @@ def find_jemalloc():
             ["ldconfig", "-p"], stderr=subprocess.DEVNULL, universal_newlines=True
         )
         for line in out.splitlines():
-            if "libjemalloc" in line and ".so" in line:
+            if "libmimalloc" in line and ".so" in line:
                 parts = line.split("=>")
                 if len(parts) == 2:
                     return parts[1].strip()
@@ -315,17 +318,15 @@ def find_jemalloc():
     return None
 
 
-def build_env(jemalloc=True):
+def build_env(use_allocator=True):
     env = os.environ.copy()
-    if IS_LINUX and jemalloc:
-        j_path = find_jemalloc()
-        if j_path:
+    if IS_LINUX and use_allocator:
+        lib_path = find_mimalloc()
+        if lib_path:
             existing = env.get("LD_PRELOAD", "")
-            if existing:
-                env["LD_PRELOAD"] = "%s:%s" % (j_path, existing)
-            else:
-                env["LD_PRELOAD"] = j_path
-            env["MALLOC_CONF"] = "narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0"
+            env["LD_PRELOAD"] = "%s:%s" % (lib_path, existing) if existing else lib_path
+            env["MIMALLOC_PAGE_RESET"] = "0"
+            env["MIMALLOC_LARGE_OS_PAGES"] = "1"
     return env
 
 
@@ -523,8 +524,8 @@ def start_engine(cfg):
         kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
 
     print("  Engine: %s" % " ".join(cmd))
-    if IS_LINUX and env.get("LD_PRELOAD"):
-        print("  jemalloc: %s" % env["LD_PRELOAD"])
+    if IS_LINUX and env.get("LD_PRELOAD") and "mimalloc" in env["LD_PRELOAD"]:
+        print("  mimalloc: %s" % env["LD_PRELOAD"])
     proc = subprocess.Popen(cmd, **kwargs)
     write_pid(cfg["name"], "engine", proc.pid)
     print("  Engine started (PID %d)" % proc.pid)
