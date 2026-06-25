@@ -615,6 +615,8 @@ def cmd_start(name):
     standalone = start_standalone_plugins(cfg)
 
     print("[%s] Watching processes (auto-restart enabled)..." % name)
+    if cfg.get("server", {}).get("restart_every_hours"):
+        print("[%s] Scheduled restart every %d hours" % (name, cfg["server"]["restart_every_hours"]))
     print("[%s] Press Ctrl+C to stop" % name)
 
     if not IS_WINDOWS:
@@ -623,6 +625,8 @@ def cmd_start(name):
     crashes = 0
     max_crashes = 5
     tick = 0
+    engine_start = time.time()
+    restart_hours = cfg.get("server", {}).get("restart_every_hours", 0)
 
     try:
         while True:
@@ -644,21 +648,34 @@ def cmd_start(name):
                     standalone[sname] = subprocess.Popen(cmd)
                     write_pid(name, sname, standalone[sname].pid)
 
+            # Scheduled restart check
+            if engine_alive and restart_hours > 0:
+                elapsed = time.time() - engine_start
+                if elapsed >= restart_hours * 3600:
+                    print("[%s] Scheduled restart after %d hours" % (name, restart_hours))
+                    kill_pid(engine.pid)
+                    remove_pid(name, "engine")
+                    engine_alive = False
+
             if not engine_alive:
                 engine.poll()
-                code = engine.returncode
-                crashes += 1
-                print("[%s] Engine crashed (exit %d, crash %d/%d)" % (
-                    name, code, crashes, max_crashes))
-                if crashes >= max_crashes:
-                    print("[%s] Max crashes reached, giving up" % name)
-                    break
+                code = engine.returncode if engine.returncode is not None else -1
+                if code == -1:
+                    # Killed for scheduled restart — not a crash
+                    print("[%s] Performing scheduled restart..." % name)
+                    crashes = 0
+                else:
+                    crashes += 1
+                    print("[%s] Engine crashed (exit %d, crash %d/%d)" % (
+                        name, code, crashes, max_crashes))
+                    if crashes >= max_crashes:
+                        print("[%s] Max crashes reached, giving up" % name)
+                        break
                 print("[%s] Restarting engine in 5s..." % name)
                 time.sleep(5)
                 engine = start_engine(cfg)
+                engine_start = time.time()
                 time.sleep(3)
-
-            time.sleep(2)
     except KeyboardInterrupt:
         print("\n[%s] Shutting down..." % name)
     finally:

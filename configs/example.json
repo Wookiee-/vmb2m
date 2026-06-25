@@ -3,7 +3,8 @@
   "server": {
     "host_name": "^1My ^2Server",
     "port": 29070,
-    "discord": ""
+    "discord": "",
+    "restart_every_hours": 24
   },
   "plugins": {
     "rtvrtm": true,

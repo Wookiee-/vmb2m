@@ -9,7 +9,7 @@ Multi-instance MBII server manager with plugin system, config generation, and pr
 - mimalloc memory allocator (Linux: LD_PRELOAD, Windows: side-by-side DLL)
 - Plugin system (native + standalone)
 - RTV/RTM voting, auto-messages, VPN monitor
-- Process watchdog with auto-restart on crash
+- Process watchdog with auto-restart on crash and scheduled restart (configurable hours)
 - MBII updater integration with retry logic
 - Cross-platform: Linux (Debian, Fedora, Arch) and Windows
 
@@ -117,6 +117,12 @@ mbii --update
 ```
 
 Stops all running instances, runs the MBII CLI updater with automatic retries on failure, then restarts everything.
+
+---
+
+## Scheduled restart
+
+Set `"restart_every_hours": 24` in your instance JSON. The manager will gracefully restart the engine every 24 hours to prevent memory leaks or performance degradation. Crash auto-restart still works independently.
 
 ---
 
