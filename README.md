@@ -1,4 +1,4 @@
-# Valzhar's MBII Server Manager
+# Valzhar's MBII Manager
 
 Server instance management, config generation, and plugin system for Movie Battles II.
 
