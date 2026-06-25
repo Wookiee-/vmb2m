@@ -1,0 +1,47 @@
+# RTV/RTM configuration template
+# Settings here are the defaults. Override any in your instance JSON.
+
+flood protection: 3
+use say only: 0
+name protection: 1
+default game: 
+clean log: 2 10
+admin voting: 0 2
+admin minimum votes: 10
+admin skip voting: 1
+roundlimit: 0
+timelimit: 0
+limit voting: 0 2
+limit minimum votes: 10
+limit extend: 2
+limit successful wait time: 300
+limit failed wait time: 300
+limit skip voting: 1
+limit second turn: 1
+limit change immediately: 0
+rtv: 1
+rtv rate: 50
+rtv voting: 0 3
+rtv minimum votes: 10
+rtv extend: 2
+rtv successful wait time: 300
+rtv failed wait time: 300
+rtv skip voting: 1
+rtv second turn: 1
+rtv change immediately: 0
+automatic maps: 0
+pick secondary maps: 1
+map priority: 2 0 1
+nomination type: 0
+enable recently played maps: 1800
+rtm: 0
+mode priority: 2 0 2 0 2 1
+rtm rate: 0
+rtm voting: 0 3
+rtm minimum votes: 20
+rtm extend: 2
+rtm successful wait time: 300
+rtm failed wait time: 300
+rtm skip voting: 1
+rtm second turn: 0
+rtm change immediately: 1

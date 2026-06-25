@@ -1,0 +1,88 @@
+{
+  "name": "example",
+  "server": {
+    "host_name": "^1My ^2Server",
+    "port": 29070,
+    "discord": ""
+  },
+  "plugins": {
+    "rtvrtm": true,
+    "automessage": {
+      "messages": [
+        "Welcome to the server!",
+        "Vote for the next map with !rtv",
+        "Type !help for commands"
+      ],
+      "interval": 300
+    },
+    "vpnmonitor": {
+      "apikey": "YOUR_IPHUB_API_KEY",
+      "block": [1, 2],
+      "action": 0,
+      "announce": true,
+      "whitelist": ["127.0.0.1"],
+      "blacklist": []
+    }
+  },
+  "security": {
+    "rcon_password": "changeme",
+    "server_password": ""
+  },
+  "game": {
+    "mode": "open",
+    "starting_map": "mb2_smuggler",
+    "map_win_limit": 25,
+    "map_round_limit": 25,
+    "competitive_config": 0,
+    "balance_mode": -1,
+    "message_of_the_day": "Welcome!\nHave fun!"
+  },
+  "smod": {
+    "admin_1": { "password": "", "config": 0 },
+    "admin_2": { "password": "", "config": 0 },
+    "admin_3": { "password": "", "config": 0 },
+    "admin_4": { "password": "", "config": 0 },
+    "admin_5": { "password": "", "config": 0 }
+  },
+  "class_limits": {
+    "Solder": 50,
+    "Trooper": 50,
+    "Commander": 50,
+    "EliteTrooper": 50,
+    "Sith": 50,
+    "Jedi": 50,
+    "BountyHunter": 50,
+    "Hero": 50,
+    "SBD": 50,
+    "Wookie": 50,
+    "Droideka": 50,
+    "CloneTrooper": 50,
+    "Mandalorian": 50,
+    "ArcTrooper": 50
+  },
+  "maps": {
+    "primary": [
+      "mb2_alderaan",
+      "mb2_boc",
+      "mb2_citadel",
+      "mb2_cloudcity",
+      "mb2_deathstar",
+      "mb2_dotf",
+      "mb2_jakku",
+      "mb2_jeditemple",
+      "mb2_kamino",
+      "mb2_korriban",
+      "mb2_mustafar",
+      "mb2_republiccruiser",
+      "mb2_smuggler",
+      "mb2_tatooine"
+    ],
+    "secondary": [
+      "mb2_cmp_arctic",
+      "mb2_cmp_assault",
+      "mb2_cmp_endor",
+      "um_bespin",
+      "um_dojo"
+    ]
+  }
+}
