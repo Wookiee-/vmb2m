@@ -67,11 +67,26 @@
       "password": "",
       "config": 0
     },
-    "admin_6": { "password": "", "config": 0 },
-    "admin_7": { "password": "", "config": 0 },
-    "admin_8": { "password": "", "config": 0 },
-    "admin_9": { "password": "", "config": 0 },
-    "admin_10": { "password": "", "config": 0 }
+    "admin_6": {
+      "password": "",
+      "config": 0
+    },
+    "admin_7": {
+      "password": "",
+      "config": 0
+    },
+    "admin_8": {
+      "password": "",
+      "config": 0
+    },
+    "admin_9": {
+      "password": "",
+      "config": 0
+    },
+    "admin_10": {
+      "password": "",
+      "config": 0
+    }
   },
   "class_limits": {
     "Solder": 50,
