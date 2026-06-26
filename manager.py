@@ -26,7 +26,7 @@ from plugins.manager import PluginManager
 from plugins import event_types as events
 
 BASE = Path(__file__).resolve().parent
-CONFIG_DIR = BASE / "configs"
+CONFIG_DIR = Path(GLOBAL_CFG.get("config_path", "")) if GLOBAL_CFG.get("config_path") else BASE / "configs"
 PID_DIR = BASE / "pids"
 
 MODE_MAP = {
@@ -69,9 +69,14 @@ def load_global_config():
     cfg = configparser.ConfigParser()
     cfg.read(str(conf))
     result = {}
-    if cfg.has_section("paths"):
-        for key in ("mbii_path", "engine", "game"):
-            val = cfg.get("paths", key, fallback="").strip()
+    if cfg.has_section("locations"):
+        for key in ("mbii_path", "config_path"):
+            val = cfg.get("locations", key, fallback="").strip()
+            if val:
+                result[key] = val
+    if cfg.has_section("dedicated"):
+        for key in ("engine", "game"):
+            val = cfg.get("dedicated", key, fallback="").strip()
             if val:
                 result[key] = val
     return result
