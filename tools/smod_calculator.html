@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SMOD Config Calculator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; max-width: 600px; margin: 0 auto; }
+h1 { font-size: 1.4rem; margin-bottom: 20px; color: #e94560; }
+label { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; }
+input[type=checkbox] { width: 18px; height: 18px; accent-color: #e94560; }
+code { background: #16213e; padding: 2px 6px; border-radius: 3px; font-size: 0.9rem; color: #aaa; }
+.val { margin-left: auto; color: #888; font-size: 0.85rem; }
+.sum { margin-top: 20px; padding: 15px; background: #16213e; border-radius: 8px; font-size: 1.2rem; }
+.sum span { color: #e94560; font-weight: bold; }
+pre { margin-top: 10px; padding: 10px; background: #0f3460; border-radius: 5px; font-size: 0.85rem; overflow-x: auto; }
+.cpy { margin-top: 10px; padding: 8px 16px; background: #e94560; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+.cpy:hover { background: #c73650; }
+</style>
+</head>
+<body>
+<h1>SMOD Config Calculator</h1>
+<div id="perms"></div>
+<div class="sum">Config Value: <span id="total">0</span></div>
+<pre id="output">seta g_smodConfig_1 "0"</pre>
+<button class="cpy" onclick="copy()">Copy to clipboard</button>
+
+<script>
+const perms = [
+  [1, "Kick", "smod kick &lt;name/ID&gt;"],
+  [2, "Nextmap", "Changes to next map"],
+  [4, "Map", "map &lt;mapname&gt;"],
+  [8, "Maprestart / Newround", "Restart map or round"],
+  [32, "MBMode", "smod mbmode &lt;0-4&gt;"],
+  [64, "Ban", "smod ban &lt;name/ID&gt;"],
+  [128, "Tempban", "smod tempban &lt;name/ID&gt; &lt;rounds&gt;"],
+  [256, "Forceteam", "smod forceteam &lt;name/ID&gt; red/blue/spec"],
+  [512, "VSTR", "smod vstr &lt;name&gt;"],
+  [2048, "Poll", "smod poll &lt;question&gt;"],
+  [4096, "RemoveBan", "smod removeban &lt;ip/mask&gt;"],
+  [8192, "Shuffle", "Shuffle teams next round"],
+  [16384, "Mute / Unmute", "smod mute &lt;name/ID&gt; &lt;minutes&gt;"],
+  [32768, "SetTK", "smod settk &lt;name/ID&gt; &lt;points&gt;"],
+];
+const container = document.getElementById("perms");
+perms.forEach(([val, name, desc]) => {
+  const lbl = document.createElement("label");
+  lbl.innerHTML = `<input type="checkbox" value="${val}" onchange="calc()"> <strong>${name}</strong> <code>${desc}</code> <span class="val">+${val}</span>`;
+  container.appendChild(lbl);
+});
+function calc() {
+  let total = 0;
+  document.querySelectorAll("#perms input:checked").forEach(cb => total += parseInt(cb.value));
+  document.getElementById("total").textContent = total;
+  document.getElementById("output").textContent = `seta g_smodConfig_1 "${total}"`;
+}
+function copy() {
+  navigator.clipboard.writeText(document.getElementById("output").textContent);
+}
+calc();
+</script>
+</body>
+</html>
