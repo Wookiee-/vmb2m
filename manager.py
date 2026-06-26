@@ -763,12 +763,16 @@ def cmd_start(name):
                     engine_alive = False
 
             if not engine_alive:
-                engine.poll()
-                code = engine.returncode if engine.returncode is not None else -1
-                if code == -1:
-                    # Killed for scheduled restart — not a crash
-                    print("[%s] Performing scheduled restart..." % name)
+                if engine:
+                    engine.poll()
+                    code = engine.returncode if engine.returncode is not None else -1
+                    is_scheduled = code == -1
+                else:
+                    code = -1
+                    is_scheduled = True
+                if is_scheduled:
                     crashes = 0
+                    print("[%s] Performing scheduled restart..." % name)
                 else:
                     crashes += 1
                     print("[%s] Engine crashed (exit %d, crash %d/%d)" % (
