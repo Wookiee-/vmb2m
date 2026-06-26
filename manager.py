@@ -572,14 +572,17 @@ def start_engine(cfg):
     ]
 
     env = build_env()
-    kwargs = {"cwd": str(instance_dir), "env": env}
     if IS_WINDOWS:
-        kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        kwargs = {"cwd": str(instance_dir), "env": env,
+                  "creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP}
     else:
-        kwargs["start_new_session"] = True
-        kwargs["stdin"] = subprocess.DEVNULL
-        kwargs["stdout"] = subprocess.DEVNULL
-        kwargs["stderr"] = subprocess.DEVNULL
+        # Use nohup to fully detach from terminal
+        cmd = ["nohup"] + cmd
+        kwargs = {"cwd": str(instance_dir), "env": env,
+                  "start_new_session": True,
+                  "stdin": subprocess.DEVNULL,
+                  "stdout": subprocess.DEVNULL,
+                  "stderr": subprocess.DEVNULL}
 
     print("  Engine: %s" % " ".join(cmd))
     if IS_LINUX and env.get("LD_PRELOAD") and "mimalloc" in env["LD_PRELOAD"]:
