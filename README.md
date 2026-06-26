@@ -110,6 +110,45 @@ python manager.py my_server stop
 
 ---
 
+## SMOD Admin Config
+
+Set admin accounts in your instance JSON under `"smod"`. Each admin gets a config value that's the sum of their permissions:
+
+| Value | Permission | Command |
+|---|---|---|
+| 1 | Kick | `smod kick <name/ID>` |
+| 2 | Nextmap | Changes to next map |
+| 4 | Map | `map <mapname>` — immediate map change |
+| 8 | Maprestart / Newround | Restart map or round |
+| 32 | MBMode | `smod mbmode <0-4>` |
+| 64 | Ban | `smod ban <name/ID>` |
+| 128 | Tempban | `smod tempban <name/ID> <rounds>` |
+| 256 | Forceteam | `smod forceteam <name/ID> red/blue/spec` |
+| 512 | VSTR | `smod vstr <name>` — execute server rules |
+| 2048 | Poll | `smod poll <question>` |
+| 4096 | RemoveBan | `smod removeban <ip/mask>` |
+| 8192 | Shuffle | Shuffle teams next round |
+| 16384 | Mute/Unmute | `smod mute <name/ID> <minutes>` |
+| 32768 | SetTK | `smod settk <name/ID> <points>` |
+
+`Say`, `Smsay`, `Status`, and `Who` are granted automatically to all SMOD accounts.
+
+**Example — full access admin:**
+```json
+"admin_1": { "password": "securepass", "config": 65535 }
+```
+
+**Example — map + forceteam only:**
+```json
+"admin_2": { "password": "lesserpass", "config": 260 }
+```
+
+(4 + 256 = 260)
+
+To calculate a custom config value, add up the permission values you want to grant.
+
+---
+
 ## Scheduled restart
 
 Set `"restart_every_hours": 24` in your instance JSON. The manager will gracefully restart the engine every 24 hours to prevent memory leaks or performance degradation. Crash auto-restart still works independently.
