@@ -675,8 +675,9 @@ def start_standalone_plugins(cfg):
         # Launch inside the engine's screen session if it exists
         screen_name = "mb2_%s" % cfg["name"]
         if not IS_WINDOWS and _engine_exists(cfg["name"]):
-            screen_cmd = ["screen", "-S", screen_name, "-X", "screen"] + cmd
-            subprocess.Popen(screen_cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            cmd_str = " ".join(cmd)
+            subprocess.Popen(["screen", "-S", screen_name, "-X", "screen", "sh", "-c", cmd_str],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             write_pid(cfg["name"], pname, 1)
             print("  [%s] Started in screen: %s" % (pname, screen_name))
         else:
@@ -815,8 +816,9 @@ def cmd_start(name):
                     if rtvcfg.exists():
                         cmd += ["-c", str(rtvcfg)]
                     if _engine_exists(name):
-                        screen_cmd = ["screen", "-S", "mb2_%s" % name, "-X", "screen"] + cmd
-                        subprocess.Popen(screen_cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        cmd_str = " ".join(cmd)
+                        subprocess.Popen(["screen", "-S", "mb2_%s" % name, "-X", "screen", "sh", "-c", cmd_str],
+                                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     else:
                         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         write_pid(name, sname, p.pid)
