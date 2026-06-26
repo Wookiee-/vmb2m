@@ -16,6 +16,9 @@
       ],
       "interval": 300
     },
+    "updater": {
+      "check_interval_minutes": 60
+    },
     "vpnmonitor": {
       "apikey": "YOUR_IPHUB_API_KEY",
       "block": [1, 2],
