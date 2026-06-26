@@ -112,28 +112,27 @@ python manager.py my_server stop
 
 ## SMOD Admin Config
 
-Set admin accounts in your instance JSON under `"smod"`. Each admin gets a config value that's the sum of their permissions:
+Set admin accounts in your instance JSON under `"smod"`. Each admin gets a config value that's the sum of their permission values. The following commands are granted automatically to all SMOD accounts: `Say`, `Smsay`, `Status`, `Who`.
 
-| Value | Permission | Command |
+| Value | Permission | Description |
 |---|---|---|
-| 1 | Kick | `smod kick <name/ID>` |
+| 1 | Kick | `smod kick <name/ID>` — kicks player from server |
 | 2 | Nextmap | Changes to next map |
-| 4 | Map | `map <mapname>` — immediate map change |
-| 8 | Maprestart / Newround | Restart map or round |
-| 32 | MBMode | `smod mbmode <0-4>` |
-| 64 | Ban | `smod ban <name/ID>` |
-| 128 | Tempban | `smod tempban <name/ID> <rounds>` |
-| 256 | Forceteam | `smod forceteam <name/ID> red/blue/spec` |
-| 512 | VSTR | `smod vstr <name>` — execute server rules |
-| 2048 | Poll | `smod poll <question>` |
-| 4096 | RemoveBan | `smod removeban <ip/mask>` |
-| 8192 | Shuffle | Shuffle teams next round |
-| 16384 | Mute/Unmute | `smod mute <name/ID> <minutes>` |
-| 32768 | SetTK | `smod settk <name/ID> <points>` |
+| 4 | Map | `map <mapname>` — immediately changes the map |
+| 8 | Maprestart / Newround | `smod maprestart` restarts map with stats reset. `smod newround` restarts round, stats stay |
+| 16 | Gametype | **Do not use** |
+| 32 | MBMode | `smod mbmode <0/1/2/3/4>` — changes game mode |
+| 64 | Ban | `smod ban <name/ID>` — issues permanent ban |
+| 128 | Tempban | `smod tempban <name/ID> <rounds>`, `smod tempbanlist`, `smod removetempban <ID>` |
+| 256 | Forceteam | `smod forceteam <name/ID> red/blue/spec` — forces team change |
+| 512 | VSTR | `smod vstr <name>` — executes server rules (map rotations, classes, etc.) |
+| 2048 | Poll | `smod poll <question>` — starts a player poll |
+| 4096 | RemoveBan | `smod removeban <ip/mask>` — lifts a banned IP |
+| 8192 | Shuffle | Shuffles teams next round |
+| 16384 | Mute / Unmute | `smod mute <name/ID> <minutes>` — mutes from global and team chat |
+| 32768 | SetTK | `smod settk <name/ID> <points>` — sets TK points for a player |
 
-`Say`, `Smsay`, `Status`, and `Who` are granted automatically to all SMOD accounts.
-
-**Example — full access admin:**
+**Example — full access (all permissions):**
 ```json
 "admin_1": { "password": "securepass", "config": 65535 }
 ```
@@ -142,10 +141,9 @@ Set admin accounts in your instance JSON under `"smod"`. Each admin gets a confi
 ```json
 "admin_2": { "password": "lesserpass", "config": 260 }
 ```
-
 (4 + 256 = 260)
 
-To calculate a custom config value, add up the permission values you want to grant, or use the interactive calculator at [`tools/smod_calculator.html`](tools/smod_calculator.html) — open in any browser, check permissions, and copy the output.
+Calculate custom values by adding up the numbers, or use the interactive calculator at [`tools/smod_calculator.html`](tools/smod_calculator.html).
 
 ---
 
