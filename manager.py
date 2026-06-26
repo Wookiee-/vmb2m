@@ -676,6 +676,8 @@ def start_standalone_plugins(cfg):
         screen_name = "mb2_%s" % cfg["name"]
         if not IS_WINDOWS and _engine_exists(cfg["name"]):
             cmd_str = " ".join(cmd)
+            logfile = mbii_dir(cfg) / ("%s-rtvrtm.log" % cfg["name"])
+            cmd_str = "%s > %s 2>&1" % (cmd_str, logfile)
             subprocess.Popen(["screen", "-S", screen_name, "-X", "screen", "sh", "-c", cmd_str],
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             write_pid(cfg["name"], pname, 1)
@@ -817,6 +819,8 @@ def cmd_start(name):
                         cmd += ["-c", str(rtvcfg)]
                     if _engine_exists(name):
                         cmd_str = " ".join(cmd)
+                        logfile = mbii_dir(cfg) / ("%s-rtvrtm.log" % name)
+                        cmd_str = "%s > %s 2>&1" % (cmd_str, logfile)
                         subprocess.Popen(["screen", "-S", "mb2_%s" % name, "-X", "screen", "sh", "-c", cmd_str],
                                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     else:
