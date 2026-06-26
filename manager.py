@@ -535,6 +535,11 @@ def start_engine(cfg):
     kwargs = {"cwd": str(instance_dir), "env": env}
     if IS_WINDOWS:
         kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        kwargs["start_new_session"] = True
+        kwargs["stdin"] = subprocess.DEVNULL
+        kwargs["stdout"] = subprocess.DEVNULL
+        kwargs["stderr"] = subprocess.DEVNULL
 
     print("  Engine: %s" % " ".join(cmd))
     if IS_LINUX and env.get("LD_PRELOAD") and "mimalloc" in env["LD_PRELOAD"]:
