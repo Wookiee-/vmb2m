@@ -26,7 +26,6 @@ from plugins.manager import PluginManager
 from plugins import event_types as events
 
 BASE = Path(__file__).resolve().parent
-CONFIG_DIR = Path(GLOBAL_CFG.get("config_path", "")) if GLOBAL_CFG.get("config_path") else BASE / "configs"
 PID_DIR = BASE / "pids"
 
 MODE_MAP = {
@@ -83,6 +82,7 @@ def load_global_config():
 
 
 GLOBAL_CFG = load_global_config()
+CONFIG_DIR = Path(GLOBAL_CFG.get("config_path", "")) if GLOBAL_CFG.get("config_path") else BASE / "configs"
 
 
 def merge_config(instance_cfg):
