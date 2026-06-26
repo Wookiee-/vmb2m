@@ -659,7 +659,7 @@ def start_engine(cfg):
 
 
 def start_standalone_plugins(cfg):
-    """Spawn standalone plugins (plugins/<name>/<name>.py exists)."""
+    """Spawn standalone plugins — inside screen if available."""
     procs = {}
     for pname, settings in cfg.get("plugins", {}).items():
         if isinstance(settings, dict) and not settings.get("enabled", True):
@@ -672,10 +672,18 @@ def start_standalone_plugins(cfg):
         rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
         if rtvcfg.exists():
             cmd += ["-c", str(rtvcfg)]
-        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        write_pid(cfg["name"], pname, proc.pid)
-        print("  [%s] Started (PID %d)" % (pname, proc.pid))
-        procs[pname] = proc
+        # Launch inside the engine's screen session if it exists
+        screen_name = "mb2_%s" % cfg["name"]
+        if not IS_WINDOWS and _engine_exists(cfg["name"]):
+            cmd_str = " ".join(cmd)
+            subprocess.Popen(["screen", "-S", screen_name, "-X", "screen", cmd_str])
+            write_pid(cfg["name"], pname, 1)
+            print("  [%s] Started in screen: %s" % (pname, screen_name))
+        else:
+            proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            write_pid(cfg["name"], pname, proc.pid)
+            print("  [%s] Started (PID %d)" % (pname, proc.pid))
+            procs[pname] = proc
     return procs
 
 
@@ -806,8 +814,12 @@ def cmd_start(name):
                     rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
                     if rtvcfg.exists():
                         cmd += ["-c", str(rtvcfg)]
-                    standalone[sname] = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    write_pid(name, sname, standalone[sname].pid)
+                    if _engine_exists(name):
+                        cmd_str = " ".join(cmd)
+                        subprocess.Popen(["screen", "-S", "mb2_%s" % name, "-X", "screen", cmd_str])
+                    else:
+                        p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        write_pid(name, sname, p.pid)
 
             # Scheduled restart check
             if engine_alive and restart_hours > 0:
