@@ -738,8 +738,8 @@ def cmd_start(name):
     engine = start_engine(cfg)
 
     info("[%s] Waiting for engine..." % name)
-    # Wait for screen session to appear (screen starts async)
-    for _ in range(15):
+    # Wait for engine to respond on its port
+    for _ in range(30):
         if _engine_alive(name):
             break
         time.sleep(1)
@@ -790,7 +790,7 @@ def cmd_start(name):
             watcher.poll()
             pm.loop_all()
 
-            engine_alive = is_pid_alive(engine.pid) if engine else _engine_alive(name)
+            engine_alive = is_pid_alive(engine.pid) if engine and hasattr(engine, 'pid') else _engine_alive(name)
 
             for sname, sproc in list(standalone.items()):
                 if not is_pid_alive(sproc.pid):
@@ -838,8 +838,6 @@ def cmd_start(name):
                 time.sleep(5)
                 engine = start_engine(cfg)
                 engine_start = time.time()
-                if not engine and _engine_alive(name):
-                    engine = object()  # Dummy — alive check uses _engine_alive
                 time.sleep(3)
     except KeyboardInterrupt:
         print("\n%s[%s] Shutting down...%s" % (C.YELLOW, name, C.END))
