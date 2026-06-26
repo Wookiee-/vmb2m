@@ -3948,6 +3948,11 @@ def main(argv):
   clear = dict.clear
   timenow = datetime.now
   strftime = datetime.strftime
+  bind = socket.bind
+  settimeout = socket.settimeout
+  connect = socket.connect
+  shutdown = socket.shutdown
+  close = socket.close
 
   if endswith(lower(argv[0]), ".exe"):
 
