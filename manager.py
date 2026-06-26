@@ -470,8 +470,9 @@ def generate_rtvrtm_cfg(cfg):
         "* Generated from %s.json\n" % cfg["name"],
         "* DO NOT EDIT\n",
     ]
-    lines.append("Log: %s\n" % (out_dir / ("%s-games.log" % cfg["name"])))
-    lines.append("MBII folder: %s\n" % cfg["server"].get("mbii_path", ""))
+    log_dir = out_dir.parent  # GameData dir (parent of MBII), where engine writes logs
+    lines.append("Log: %s\n" % (log_dir / ("%s-games.log" % cfg["name"])))
+    lines.append("MBII folder: %s\n" % str(out_dir))
     lines.append("Address: 127.0.0.1:%s\n" % cfg["server"]["port"])
     lines.append("Bind: 127.0.0.1\n")
     lines.append("Password: %s\n" % cfg["security"]["rcon_password"])
@@ -621,8 +622,11 @@ def cmd_start(name):
     pm = _init_plugins(cfg, rcon)
 
     # Log watcher feeds events to plugins
-    log_path = str(mbii_dir(cfg) / ("%s-games.log" % name))
-    watcher = LogWatcher(log_path, pm)
+    log_path = mbii_dir(cfg).parent / ("%s-games.log" % name)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    if not log_path.exists():
+        log_path.touch()  # Create empty log so rtvrtm can find it
+    watcher = LogWatcher(str(log_path), pm)
     watcher.start()
 
     standalone = start_standalone_plugins(cfg)

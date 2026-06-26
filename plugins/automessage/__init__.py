@@ -1,11 +1,12 @@
-"""Example plugin: rotates messages in chat every N seconds."""
+"""Rotates messages in chat every N seconds."""
+
+import time
 
 from plugins.base import BasePlugin
-from plugins import event_types as events
 
 
 class AutoMessagePlugin(BasePlugin):
-    name = "auto_message"
+    name = "automessage"
     version = "1.0"
 
     def on_init(self, api, config):
@@ -15,13 +16,14 @@ class AutoMessagePlugin(BasePlugin):
         if not self.messages:
             return False
         self._index = 0
-        self._timer = 0
+        self._last = time.time()
+        print("  [automessage] Active — %d messages every %ds" % (len(self.messages), self.interval))
         return True
 
     def on_loop(self):
-        self._timer += 1
-        if self._timer >= self.interval:
-            self._timer = 0
+        now = time.time()
+        if now - self._last >= self.interval:
+            self._last = now
             msg = self.messages[self._index % len(self.messages)]
             self._index += 1
             self.api.say("^2[Server] ^7%s" % msg)
