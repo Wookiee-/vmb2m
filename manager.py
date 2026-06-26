@@ -633,13 +633,13 @@ def start_engine(cfg):
         print("  mimalloc: %s" % env["LD_PRELOAD"])
 
     if using_screen:
-        subprocess.Popen(cmd, **kwargs)
+        subprocess.Popen(cmd, stderr=subprocess.DEVNULL, **kwargs)
         write_pid(cfg["name"], "engine", 1)  # Dummy PID, checked via screen/port
-        print("  Engine started in screen: %s" % screen_name)
+        ok("Engine started in screen: %s" % screen_name)
     else:
-        proc = subprocess.Popen(cmd, **kwargs)
+        proc = subprocess.Popen(cmd, stderr=subprocess.DEVNULL, **kwargs)
         write_pid(cfg["name"], "engine", proc.pid)
-        print("  Engine started (PID %d)" % proc.pid)
+        ok("Engine started (PID %d)" % proc.pid)
         return proc
     return None
 
