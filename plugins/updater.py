@@ -99,7 +99,7 @@ class UpdaterPlugin(BasePlugin):
                 )
                 if result.returncode == 0:
                     print("  [updater] Update successful (attempt %d)" % attempt)
-                    self._copy_engine_lib()
+                    self._patch_engine_lib()
                     print("  [updater] Update complete")
                     return
                 print("  [updater] Attempt %d failed" % attempt)
@@ -109,10 +109,17 @@ class UpdaterPlugin(BasePlugin):
 
         print("  [updater] Update failed after 10 attempts")
 
-    def _copy_engine_lib(self):
-        nopp = os.path.join(self.gamedir, "MBII", "jampgamei386.nopp.so")
-        jamplib = os.path.join(self.gamedir, "MBII", "jampgamei386.so")
-        if os.path.exists(nopp):
-            import shutil
-            shutil.copy2(nopp, jamplib)
-            print("  [updater] Patched engine library")
+    def _patch_engine_lib(self):
+        mbii = os.path.join(self.gamedir, "MBII")
+        old = os.path.join(mbii, "jampgamei386.so")
+        nopp = os.path.join(mbii, "jampgamei386.nopp.so")
+        if os.path.exists(nopp) and os.path.exists(old):
+            backup = os.path.join(mbii, "jampgamei386.jamp.so")
+            try:
+                if not os.path.exists(backup):
+                    os.rename(old, backup)
+                import shutil
+                shutil.copy2(nopp, old)
+                print("  [updater] Patched engine library (nopp -> so)")
+            except Exception as e:
+                print("  [updater] Failed to patch engine lib: %s" % e)
