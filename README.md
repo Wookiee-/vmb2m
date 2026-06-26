@@ -130,6 +130,79 @@ mbii us_east start
 
 ---
 
+## RTV/RTM Settings
+
+Configured under `"rtvrtm"` in your instance JSON or in `configs/rtvrtm.template`.
+
+### General settings
+
+| Field | Default | Description |
+|---|---|---|
+| `flood protection` | `3` | Seconds between commands per player. 0 = disabled |
+| `use say only` | `0` | 1 = all messages via `say` (brief), 0 = important via `svsay` (chat box) |
+| `name protection` | `1` | Kick players using reserved names "Server" or "Admin" |
+| `default game` | `` | Map/mode to switch to when player count hits 0 |
+| `clean log` | `2 10` | 0=off, 1=clean, 2=compress+clean. Second value is max MB |
+
+### RTV (Rock the Vote)
+
+| Field | Default | Description |
+|---|---|---|
+| `rtv` | `1` | 0 = disabled, 1 = enabled |
+| `rtv rate` | `50` | % of players needed to trigger RTV. 0 = absolute majority |
+| `rtv voting` | `0 3` | Voting completion: 0 = minutes, 1 = rounds |
+| `rtv minimum votes` | `10` | Min % of votes for RTV not to fail. 0 = never fails |
+| `rtv extend` | `2` | "Don't change" option: 0=never, 1=until limit, 2=always |
+| `rtv successful/failed wait time` | `300` | Seconds before RTV can be used again after success/failure |
+| `rtv skip voting` | `1` | 0=no skip, 1=skip when all voted, 2=skip when unreachable |
+| `rtv second turn` | `1` | Runoff vote if no option gets >50% |
+| `rtv change immediately` | `0` | 1 = change map immediately, 0 = wait for next round |
+
+### RTM (Rock the Mode)
+
+| Field | Default | Description |
+|---|---|---|
+| `rtm` | `0` | 0=off, 1=Open, 2=Semi, 4=Open+Semi, 8=Duel, 15=Legends, 21=All |
+| `mode priority` | `2 0 2 0 2 1` | Priority for Open, Semi, Full, Duel, Legends, Extend |
+| `rtm rate` | `0` | % of players needed. 0 = absolute majority |
+| `rtm voting` | `0 3` | Voting completion: 0 = minutes, 1 = rounds |
+| `rtm minimum votes` | `20` | Min % of votes for RTM not to fail |
+| `rtm extend` | `2` | "Don't change" option behavior |
+| `rtm successful/failed wait time` | `300` | Cooldown after success/failure |
+| `rtm skip voting` | `1` | Skip when all voted or unreachable |
+| `rtm second turn` | `0` | Runoff vote mode |
+| `rtm change immediately` | `1` | Change mode immediately or next round |
+
+### Map settings
+
+| Field | Default | Description |
+|---|---|---|
+| `automatic maps` | `0` | 1 = auto-detect all BSP maps from pk3 files |
+| `pick secondary maps` | `1` | 0=off, 1=secondary to fill gaps, 2=primary+secondary equally |
+| `map priority` | `2 0 1` | Priority for primary, secondary, extend maps |
+| `nomination type` | `0` | 0=one nom per player (max 5), 1=numbered votes for noms |
+| `enable recently played maps` | `1800` | Seconds a map stays blocked after being played. 0=off |
+
+### Admin voting
+
+| Field | Default | Description |
+|---|---|---|
+| `admin voting` | `0 2` | 0=minutes, 1=rounds |
+| `admin minimum votes` | `10` | % needed for admin votes to pass |
+| `admin skip voting` | `1` | Skip when unreachable |
+
+### Map limits (roundlimit/timelimit)
+
+| Field | Default | Description |
+|---|---|---|
+| `roundlimit` | `0` | Start map vote when roundlimit is reached |
+| `timelimit` | `0` | Start map vote when timelimit is reached |
+| `limit voting` | `0 2` | Map limit voting timeout format |
+| `limit extend` | `2` | "Don't change" for limit-triggered votes |
+| `limit change immediately` | `0` | Change map immediately after limit vote |
+
+---
+
 ## Plugins
 
 Enable in your instance JSON under `"plugins"`:
