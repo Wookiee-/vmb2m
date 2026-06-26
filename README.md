@@ -145,7 +145,7 @@ Set admin accounts in your instance JSON under `"smod"`. Each admin gets a confi
 
 (4 + 256 = 260)
 
-To calculate a custom config value, add up the permission values you want to grant.
+To calculate a custom config value, add up the permission values you want to grant, or use the interactive calculator at [`tools/smod_calculator.html`](tools/smod_calculator.html) — open in any browser, check permissions, and copy the output.
 
 ---
 
