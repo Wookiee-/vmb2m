@@ -644,6 +644,8 @@ def start_engine(cfg):
         subprocess.run(["screen", "-wipe"], capture_output=True, timeout=5)
 
     env = build_env()
+    mimalloc_lib = env.pop("LD_PRELOAD", None)
+
     if IS_WINDOWS:
         kwargs = {"cwd": str(instance_dir), "env": env,
                   "creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP}
@@ -651,7 +653,16 @@ def start_engine(cfg):
         import shutil as _su
         if _su.which("screen"):
             using_screen = True
-            cmd = ["screen", "-dmS", screen_name] + cmd
+            if mimalloc_lib:
+                cmd = ["screen", "-dmS", screen_name, "sh", "-c",
+                       "LD_PRELOAD=%s MIMALLOC_PAGE_RESET=0 MIMALLOC_LARGE_OS_PAGES=1 %s" %
+                       (mimalloc_lib, " ".join(cmd))]
+            else:
+                cmd = ["screen", "-dmS", screen_name] + cmd
+        else:
+            # No screen — put LD_PRELOAD back for direct launch
+            if mimalloc_lib:
+                env["LD_PRELOAD"] = mimalloc_lib
         kwargs = {"cwd": str(instance_dir), "env": env}
 
     print("  Engine: %s" % " ".join(cmd))
@@ -659,7 +670,7 @@ def start_engine(cfg):
         print("  mimalloc: %s" % env["LD_PRELOAD"])
 
     if using_screen:
-        subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kwargs)
+        subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=str(instance_dir))
         write_pid(cfg["name"], "engine", 1)  # Dummy PID, checked via screen/port
         ok("Engine starting in screen: %s" % screen_name)
     else:
