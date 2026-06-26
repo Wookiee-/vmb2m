@@ -96,21 +96,10 @@ if [ -d "$SCRIPTPATH/updater" ]; then
     echo "  [OK] Updater files copied to openjk/"
 fi
 
-# ── Multi-user group (optional) ──
-if [ "$1" = "--multi-user" ]; then
-    echo ""
-    echo "  [....] Setting up multi-user group..."
-    sudo groupadd -f mbii
-    sudo chgrp -R mbii "$SCRIPTPATH"
-    sudo chmod -R g+rw "$SCRIPTPATH/pids" "$SCRIPTPATH/configs" 2>/dev/null || true
-    sudo chmod g+s "$SCRIPTPATH/pids" "$SCRIPTPATH/configs" 2>/dev/null || true
-    echo "  [OK] Group 'mbii' created"
-    echo "  Add users: sudo usermod -aG mbii <username>"
-fi
-
 echo ""
 echo "========================================"
 echo "  Setup complete"
 echo "========================================"
 echo ""
 echo "  mbii <name> start|stop|restart|status"
+echo "  mbii --update"
