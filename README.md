@@ -116,6 +116,10 @@ Set admin accounts in your instance JSON under `"smod"`. Each admin gets a confi
 
 | Value | Permission | Description |
 |---|---|---|
+| 0 | Say | Talk to server as admin (automatic) |
+| 0 | Smsay | Talk to other logged in admins (automatic) |
+| 0 | Status | See server status, IDs, IPs (automatic) |
+| 0 | Who | See who else is logged into SMOD (automatic) |
 | 1 | Kick | `smod kick <name/ID>` — kicks player from server |
 | 2 | Nextmap | Changes to next map |
 | 4 | Map | `map <mapname>` — immediately changes the map |
