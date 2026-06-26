@@ -106,17 +106,7 @@ python manager.py my_server stop
 | Restart server | `mbii <name> restart` | `python manager.py <name> restart` |
 | Check status | `mbii <name> status` | `python manager.py <name> status` |
 | List instances | `mbii --list` | `python manager.py --list` |
-| Update MBII | `mbii --update` | `python manager.py --update` |
 
----
-
-## Updating MBII
-
-```bash
-mbii --update
-```
-
-Stops all running instances, runs the MBII CLI updater with automatic retries on failure, then restarts everything.
 
 ---
 

@@ -733,136 +733,7 @@ def _running_instances():
     return result
 
 
-def cmd_update():
-    print("[UPDATE] Checking for running instances...")
-    running = _running_instances()
 
-    # Find dotnet
-    dotnet = None
-    dotnet_root = os.environ.get("DOTNET_ROOT", os.path.expanduser("~/.dotnet"))
-    dotnet_path = os.path.join(dotnet_root, "dotnet")
-    if os.path.exists(dotnet_path):
-        dotnet = dotnet_path
-        os.environ["DOTNET_ROOT"] = dotnet_root
-        os.environ["PATH"] = "%s:%s/tools:%s" % (dotnet_root, dotnet_root, os.environ.get("PATH", ""))
-    else:
-        # Try PATH
-        if IS_WINDOWS:
-            dotnet = "dotnet"
-        else:
-            try:
-                subprocess.run(["which", "dotnet"], capture_output=True, check=True)
-                dotnet = "dotnet"
-            except subprocess.CalledProcessError:
-                pass
-
-    if not dotnet:
-        print("[UPDATE] .NET SDK not found. Install .NET SDK 6.0 first.")
-        print("  Linux:  ./install.sh")
-        print("  Windows: https://dotnet.microsoft.com/download/dotnet/6.0")
-        return
-
-    # Find updater DLL and GameData dir
-    openjk = os.path.expanduser("~/openjk")
-    updater_dll = os.path.join(openjk, "MBII_CommandLine_Update_XPlatform.dll")
-    if not os.path.exists(updater_dll):
-        fallback = BASE / "updater" / "MBII_CommandLine_Update_XPlatform.dll"
-        if fallback.exists():
-            updater_dll = str(fallback)
-        else:
-            print("[UPDATE] MBII_CommandLine_Update_XPlatform.dll not found")
-            print("  Run ./install.sh to copy updater files to ~/openjk/")
-            return
-
-    gamedir = openjk  # GameData dir (parent of MBII/)
-
-    # Step 1: Check for updates
-    print("[UPDATE] Checking for updates...")
-    check = subprocess.run(
-        [dotnet, updater_dll, "-c", "-path", gamedir],
-        cwd=os.path.dirname(updater_dll),
-        capture_output=True, timeout=60,
-    )
-    check_out = check.stdout.decode(errors="replace").strip()
-    update_count = 0
-    for line in check_out.split("\n"):
-        try:
-            update_count = int(line.strip())
-            break
-        except ValueError:
-            continue
-
-    if update_count <= 1:
-        print("[UPDATE] No updates available (%s)" % check_out[:80])
-        return
-
-    print("[UPDATE] %d files to update. Applying..." % update_count)
-
-    # Step 2: Stop instances
-    if running:
-        print("[UPDATE] Stopping: %s" % ", ".join(running))
-        for name in running:
-            stop_processes(name)
-        print("[UPDATE] All instances stopped")
-    else:
-        print("[UPDATE] No running instances")
-
-    # Step 3: Run updater with retry
-    print("[UPDATE] Running MBII updater...")
-    print("[UPDATE] Press Ctrl+C to stop retrying")
-
-    attempt = 0
-    success = False
-    while not success:
-        attempt += 1
-        if IS_LINUX:
-            try:
-                subprocess.run(["pkill", "-f", "MBII_CommandLine_Update"],
-                               capture_output=True, timeout=5)
-            except Exception:
-                pass
-
-        print("[UPDATE] Attempt %d..." % attempt)
-        try:
-            result = subprocess.run(
-                [dotnet, updater_dll, "-path", gamedir],
-                cwd=os.path.dirname(updater_dll),
-                capture_output=True,
-                timeout=180,
-            )
-            if result.returncode == 0:
-                print("[UPDATE] MBII updated successfully (attempt %d)" % attempt)
-                success = True
-            else:
-                print("[UPDATE] Attempt %d failed (exit %d)" % (attempt, result.returncode))
-                if result.stderr:
-                    last = result.stderr.decode(errors="replace").strip().split("\n")[-1][-200:]
-                    print("  %s" % last)
-        except subprocess.TimeoutExpired:
-            print("[UPDATE] Attempt %d timed out" % attempt)
-        except KeyboardInterrupt:
-            print("\n[UPDATE] Stopped by user")
-            break
-        except Exception as e:
-            print("[UPDATE] Attempt %d error: %s" % (attempt, e))
-
-        if not success:
-            wait = min(30, 2 ** (attempt % 6))
-            print("[UPDATE] Retrying in %ds..." % wait)
-            try:
-                time.sleep(wait)
-            except KeyboardInterrupt:
-                break
-
-    # Step 4: Copy engine library after update
-    if success:
-        nopp = os.path.join(openjk, "MBII", "jampgamei386.nopp.so")
-        jamplib = os.path.join(openjk, "MBII", "jampgamei386.so")
-        if os.path.exists(nopp):
-            import shutil
-            shutil.copy2(nopp, jamplib)
-            print("[UPDATE] Copied jampgamei386.nopp.so -> jampgamei386.so")
-        print("[UPDATE] Update complete")
 
     # Restart previously running instances
     if running:
@@ -898,14 +769,12 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: manager.py <name> <start|stop|restart|status>")
         print("       manager.py --list")
+        print("")
+        print("Updates are handled automatically by the updater plugin.")
         sys.exit(1)
 
     if sys.argv[1] == "--list":
         cmd_list()
-        return
-
-    if sys.argv[1] == "--update":
-        cmd_update()
         return
 
     name = sys.argv[1]
