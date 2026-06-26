@@ -125,6 +125,7 @@ Set admin accounts in your instance JSON under `"smod"`. Each admin gets a confi
 | 4 | Map | `map <mapname>` — immediately changes the map |
 | 8 | Maprestart / Newround | `smod maprestart` restarts map with stats reset. `smod newround` restarts round, stats stay |
 | 16 | Gametype | **Do not use** |
+| 1024 | Campaign | Campaign file commands |
 | 32 | MBMode | `smod mbmode <0/1/2/3/4>` — changes game mode |
 | 64 | Ban | `smod ban <name/ID>` — issues permanent ban |
 | 128 | Tempban | `smod tempban <name/ID> <rounds>`, `smod tempbanlist`, `smod removetempban <ID>` |
