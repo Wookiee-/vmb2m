@@ -547,29 +547,22 @@ def generate_rtvrtm_cfg(cfg):
 
 
 def _engine_alive(name):
-    """Check if engine is running (via screen session + port check)."""
+    """Check if engine is running (screen session exists for this instance)."""
     if IS_WINDOWS:
         pid = read_pid(name, "engine")
         return is_pid_alive(pid) if pid else False
     try:
         r = subprocess.run(["screen", "-list"], capture_output=True, timeout=5, text=True)
-        screen_ok = "mb2_%s" % name in r.stdout
-        if not screen_ok:
-            return False
-        # Verify engine actually running inside screen (check port)
-        cfg = load_config(name)
-        port = cfg["server"]["port"]
-        import socket as _sock
-        s = _sock.socket(_sock.AF_INET, _sock.SOCK_DGRAM)
-        s.settimeout(2)
-        try:
-            s.sendto(b"\xff\xff\xff\xffgetstatus", ("127.0.0.1", port))
-            s.recv(4096)
-            return True
-        except Exception:
-            return False
-        finally:
-            s.close()
+        return "mb2_%s" % name in r.stdout
+    except Exception:
+        return False
+
+
+def _engine_exists(name):
+    """Check if a screen session already exists (prevent duplicates)."""
+    try:
+        r = subprocess.run(["screen", "-list"], capture_output=True, timeout=5, text=True)
+        return "mb2_%s" % name in r.stdout
     except Exception:
         return False
 
@@ -634,6 +627,10 @@ def start_engine(cfg):
         "+exec", server_cfg,
     ]
 
+    if _engine_exists(cfg["name"]):
+        warn("[%s] Engine already running in screen — not starting" % cfg["name"])
+        return None
+
     env = build_env()
     if IS_WINDOWS:
         kwargs = {"cwd": str(instance_dir), "env": env,
@@ -675,7 +672,7 @@ def start_standalone_plugins(cfg):
         rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
         if rtvcfg.exists():
             cmd += ["-c", str(rtvcfg)]
-        proc = subprocess.Popen(cmd)
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         write_pid(cfg["name"], pname, proc.pid)
         print("  [%s] Started (PID %d)" % (pname, proc.pid))
         procs[pname] = proc
@@ -738,8 +735,7 @@ def cmd_start(name):
     engine = start_engine(cfg)
 
     info("[%s] Waiting for engine..." % name)
-    # Wait for engine to respond on its port
-    for _ in range(30):
+    for _ in range(15):
         if _engine_alive(name):
             break
         time.sleep(1)
@@ -801,7 +797,7 @@ def cmd_start(name):
                     rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
                     if rtvcfg.exists():
                         cmd += ["-c", str(rtvcfg)]
-                    standalone[sname] = subprocess.Popen(cmd)
+                    standalone[sname] = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     write_pid(name, sname, standalone[sname].pid)
 
             # Scheduled restart check
