@@ -76,6 +76,7 @@ ln -sf "$OPENJK_TARGET" "$HOME/.local/share/openjk" 2>/dev/null || true
 ln -sf "$OPENJK_TARGET" "$HOME/.ja" 2>/dev/null || true
 
 # ── CLI shortcut ──
+chmod +x "$SCRIPTPATH/manager.py"
 sudo ln -sf "$SCRIPTPATH/manager.py" "/usr/bin/mbii"
 echo "  [OK] Shortcut: mbii"
 
