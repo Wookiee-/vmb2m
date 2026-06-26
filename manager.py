@@ -145,6 +145,7 @@ def load_config(name):
         sys.exit(1)
     with open(path) as f:
         cfg = json.load(f)
+    cfg["name"] = name  # Filename always wins
     return merge_config(cfg)
 
 
