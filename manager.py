@@ -526,6 +526,31 @@ def generate_rtvrtm_cfg(cfg):
     return out
 
 
+def _screen_alive(name):
+    """Check if a screen session is running for this instance."""
+    if IS_WINDOWS:
+        return False
+    try:
+        r = subprocess.run(["screen", "-list"], capture_output=True, timeout=5,
+                           text=True)
+        return "mb2_%s" % name in r.stdout
+    except Exception:
+        return False
+
+
+def _screen_kill(name):
+    """Kill a screen session for this instance."""
+    if IS_WINDOWS:
+        return
+    try:
+        subprocess.run(["screen", "-S", "mb2_%s" % name, "-X", "quit"],
+                       capture_output=True, timeout=5)
+        subprocess.run(["pkill", "-f", "mb2_%s" % name],
+                       capture_output=True, timeout=5)
+    except Exception:
+        pass
+
+
 def find_engine(cfg=None):
     """Auto-detect engine binary.
        Priority: PATH -> /usr/bin -> GameData dir.
@@ -561,6 +586,8 @@ def start_engine(cfg):
     game = cfg["server"].get("game", "MBII")
     server_cfg = "%s-server.cfg" % cfg["name"]
     instance_dir = mbii_dir(cfg)
+    screen_name = "mb2_%s" % cfg["name"]
+    using_screen = False
 
     cmd = [
         engine,
@@ -576,21 +603,26 @@ def start_engine(cfg):
         kwargs = {"cwd": str(instance_dir), "env": env,
                   "creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP}
     else:
-        # Use nohup to fully detach from terminal
-        cmd = ["nohup"] + cmd
-        kwargs = {"cwd": str(instance_dir), "env": env,
-                  "start_new_session": True,
-                  "stdin": subprocess.DEVNULL,
-                  "stdout": subprocess.DEVNULL,
-                  "stderr": subprocess.DEVNULL}
+        import shutil as _su
+        if _su.which("screen"):
+            using_screen = True
+            cmd = ["screen", "-dmS", screen_name] + cmd
+        kwargs = {"cwd": str(instance_dir), "env": env}
 
     print("  Engine: %s" % " ".join(cmd))
     if IS_LINUX and env.get("LD_PRELOAD") and "mimalloc" in env["LD_PRELOAD"]:
         print("  mimalloc: %s" % env["LD_PRELOAD"])
-    proc = subprocess.Popen(cmd, **kwargs)
-    write_pid(cfg["name"], "engine", proc.pid)
-    print("  Engine started (PID %d)" % proc.pid)
-    return proc
+
+    if using_screen:
+        subprocess.Popen(cmd, **kwargs)
+        write_pid(cfg["name"], "engine", 1)  # Dummy PID, checked via screen/port
+        print("  Engine started in screen: %s" % screen_name)
+    else:
+        proc = subprocess.Popen(cmd, **kwargs)
+        write_pid(cfg["name"], "engine", proc.pid)
+        print("  Engine started (PID %d)" % proc.pid)
+        return proc
+    return None
 
 
 def start_standalone_plugins(cfg):
@@ -618,7 +650,13 @@ def stop_processes(name):
     for pid_file in PID_DIR.glob("%s_*.pid" % name):
         label = pid_file.stem.replace(name + "_", "")
         pid = read_pid(name, label)
-        if pid and is_pid_alive(pid):
+        if label == "engine" and pid == 1:
+            # Running under screen — kill screen session
+            if _screen_alive(name):
+                _screen_kill(name)
+                print("  Stopped engine (screen: mb2_%s)" % name)
+            remove_pid(name, label)
+        elif pid and is_pid_alive(pid):
             kill_pid(pid)
             print("  Stopped %s (PID %d)" % (label, pid))
             remove_pid(name, label)
@@ -698,7 +736,7 @@ def cmd_start(name):
             watcher.poll()
             pm.loop_all()
 
-            engine_alive = is_pid_alive(engine.pid) if engine else False
+            engine_alive = is_pid_alive(engine.pid) if engine else _screen_alive(name)
 
             for sname, sproc in list(standalone.items()):
                 if not is_pid_alive(sproc.pid):
@@ -717,7 +755,10 @@ def cmd_start(name):
                 elapsed = time.time() - engine_start
                 if elapsed >= restart_hours * 3600:
                     print("[%s] Scheduled restart after %d hours" % (name, restart_hours))
-                    kill_pid(engine.pid)
+                    if engine:
+                        kill_pid(engine.pid)
+                    else:
+                        _screen_kill(name)
                     remove_pid(name, "engine")
                     engine_alive = False
 
@@ -739,6 +780,8 @@ def cmd_start(name):
                 time.sleep(5)
                 engine = start_engine(cfg)
                 engine_start = time.time()
+                if not engine and _screen_alive(name):
+                    engine = object()  # Dummy — alive check uses _screen_alive
                 time.sleep(3)
     except KeyboardInterrupt:
         print("\n[%s] Shutting down..." % name)
@@ -769,9 +812,13 @@ def cmd_status(name):
     print("  Engine: %s" % cfg["server"]["engine"])
     for label in ("engine", "rtvrtm"):
         pid = read_pid(name, label)
-        alive = is_pid_alive(pid)
-        print("  %s: %s (PID %s)" % (label, "RUNNING" if alive else "STOPPED",
-                                      str(pid) if pid else "-"))
+        if label == "engine" and pid == 1:
+            alive = _screen_alive(name)
+            print("  engine: %s (screen)" % ("RUNNING" if alive else "STOPPED"))
+        else:
+            alive = is_pid_alive(pid)
+            print("  %s: %s (PID %s)" % (label, "RUNNING" if alive else "STOPPED",
+                                          str(pid) if pid else "-"))
 
 
 def _running_instances():
@@ -779,7 +826,10 @@ def _running_instances():
     result = []
     for f in CONFIG_DIR.glob("*.json"):
         name = f.stem
-        if is_pid_alive(read_pid(name, "engine")):
+        pid = read_pid(name, "engine")
+        if pid and pid == 1 and _screen_alive(name):
+            result.append(name)
+        elif is_pid_alive(pid):
             result.append(name)
     return result
 
