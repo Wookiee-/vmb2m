@@ -800,7 +800,7 @@ def cmd_start(name):
                     if engine:
                         kill_pid(engine.pid)
                     else:
-                _engine_kill(name)
+                        _engine_kill(name)
                     remove_pid(name, "engine")
                     engine_alive = False
 
