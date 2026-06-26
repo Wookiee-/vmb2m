@@ -132,24 +132,40 @@ def kill_pid(pid, sig=None):
         return False
     if sig is None:
         sig = signal.SIGTERM if not IS_WINDOWS else signal.SIGTERM
-    try:
-        if IS_WINDOWS:
+    if IS_WINDOWS:
+        try:
             import ctypes
             handle = ctypes.windll.kernel32.OpenProcess(1, False, pid)
             if handle:
                 ctypes.windll.kernel32.TerminateProcess(handle, 1)
                 ctypes.windll.kernel32.CloseHandle(handle)
             return True
-        else:
+        except (ImportError, OSError):
+            pass
+    else:
+        # Try direct kill first
+        try:
             os.kill(pid, sig)
             return True
-    except (OSError, PermissionError, ImportError):
-        try:
-            subprocess.run(["taskkill", "/F", "/PID", str(pid)],
-                           capture_output=True, timeout=5)
-            return True
-        except Exception:
+        except PermissionError:
+            # Process owned by another user — try sudo
+            try:
+                subprocess.run(
+                    ["sudo", "kill", "-%d" % sig, str(pid)],
+                    capture_output=True, timeout=10
+                )
+                return True
+            except Exception:
+                return False
+        except OSError:
             return False
+    # Fallback: taskkill on Windows
+    try:
+        subprocess.run(["taskkill", "/F", "/PID", str(pid)],
+                       capture_output=True, timeout=5)
+        return True
+    except Exception:
+        return False
 
 
 RCON_PREFIX = bytes([0xff, 0xff, 0xff, 0xff])

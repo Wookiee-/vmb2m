@@ -130,6 +130,23 @@ mbii us_east start
 
 ---
 
+## Multi-user setup
+
+For teams or companies managing servers together:
+
+```bash
+# Run install with multi-user flag
+./install.sh --multi-user
+
+# Add each admin to the mbii group
+sudo usermod -aG mbii alice
+sudo usermod -aG mbii bob
+```
+
+Members of the `mbii` group can all run `mbii` commands. If a process was started by another user, `manager.py` automatically uses `sudo` to stop it (requires passwordless sudo for `kill`).
+
+---
+
 ## Plugins
 
 Enable in your instance JSON under `"plugins"`:
