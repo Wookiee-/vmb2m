@@ -547,22 +547,31 @@ def generate_rtvrtm_cfg(cfg):
 
 
 def _engine_alive(name):
-    """Check if engine is running (screen session exists for this instance)."""
+    """Check if engine process is actually running."""
     if IS_WINDOWS:
         pid = read_pid(name, "engine")
         return is_pid_alive(pid) if pid else False
     try:
         r = subprocess.run(["screen", "-list"], capture_output=True, timeout=5, text=True)
-        return "mb2_%s" % name in r.stdout
+        if "mb2_%s" % name not in r.stdout:
+            return False
+        # Screen exists — verify engine binary is actually running inside it
+        r2 = subprocess.run(["pgrep", "-f", "mbiided.*%s" % name],
+                            capture_output=True, timeout=5)
+        return r2.returncode == 0
     except Exception:
         return False
 
 
 def _engine_exists(name):
-    """Check if a screen session already exists (prevent duplicates)."""
+    """Check if a screen session exists with a live engine inside."""
     try:
         r = subprocess.run(["screen", "-list"], capture_output=True, timeout=5, text=True)
-        return "mb2_%s" % name in r.stdout
+        if "mb2_%s" % name not in r.stdout:
+            return False
+        r2 = subprocess.run(["pgrep", "-f", "mbiided.*%s" % name],
+                            capture_output=True, timeout=5)
+        return r2.returncode == 0
     except Exception:
         return False
 
@@ -628,8 +637,11 @@ def start_engine(cfg):
     ]
 
     if _engine_exists(cfg["name"]):
-        warn("[%s] Engine already running in screen — not starting" % cfg["name"])
         return None
+    # Clean up any stale/dead screen sessions for this name
+    if not IS_WINDOWS:
+        _engine_kill(cfg["name"])
+        subprocess.run(["screen", "-wipe"], capture_output=True, timeout=5)
 
     env = build_env()
     if IS_WINDOWS:
