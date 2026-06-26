@@ -647,7 +647,7 @@ def start_engine(cfg):
         print("  mimalloc: %s" % env["LD_PRELOAD"])
 
     if using_screen:
-        subprocess.Popen(cmd, stderr=subprocess.DEVNULL, **kwargs)
+        subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kwargs)
         write_pid(cfg["name"], "engine", 1)  # Dummy PID, checked via screen/port
         ok("Engine starting in screen: %s" % screen_name)
     else:
@@ -766,6 +766,15 @@ def cmd_start(name):
         pid2 = os.fork()
         if pid2 > 0:
             os._exit(0)
+        # Detach from terminal completely
+        sys.stdin.close()
+        sys.stdout.close()
+        sys.stderr.close()
+        devnull = os.open(os.devnull, os.O_RDWR)
+        os.dup2(devnull, 0)
+        os.dup2(devnull, 1)
+        os.dup2(devnull, 2)
+        os.close(devnull)
 
     print("[%s] Watching processes (auto-restart enabled)..." % name)
     if cfg.get("server", {}).get("restart_every_hours"):
