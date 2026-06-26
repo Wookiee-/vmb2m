@@ -118,8 +118,7 @@ class UpdaterPlugin(BasePlugin):
             try:
                 if not os.path.exists(backup):
                     os.rename(old, backup)
-                import shutil
-                shutil.copy2(nopp, old)
+                os.rename(nopp, old)
                 print("  [updater] Patched engine library (nopp -> so)")
             except Exception as e:
                 print("  [updater] Failed to patch engine lib: %s" % e)
