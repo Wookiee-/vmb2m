@@ -759,10 +759,21 @@ def cmd_start(name):
 
     standalone = start_standalone_plugins(cfg)
 
+    # Fork into background so terminal is freed
+    if not IS_WINDOWS and not os.environ.get("MBII_FG"):
+        pid = os.fork()
+        if pid > 0:
+            write_pid(name, "manager", pid)
+            print("  Manager running as daemon (PID %d)" % pid)
+            return
+        os.setsid()
+        pid2 = os.fork()
+        if pid2 > 0:
+            os._exit(0)
+
     print("[%s] Watching processes (auto-restart enabled)..." % name)
     if cfg.get("server", {}).get("restart_every_hours"):
         print("[%s] Scheduled restart every %d hours" % (name, cfg["server"]["restart_every_hours"]))
-    print("[%s] Press Ctrl+C to stop" % name)
 
     if not IS_WINDOWS:
         signal.signal(signal.SIGHUP, lambda s, f: None)
@@ -843,6 +854,11 @@ def cmd_start(name):
 def cmd_stop(name):
     print("[%s] Stopping..." % name)
     stop_processes(name)
+    # Kill manager daemon too
+    mpid = read_pid(name, "manager")
+    if mpid and is_pid_alive(mpid):
+        kill_pid(mpid)
+        remove_pid(name, "manager")
     print("[%s] Stopped" % name)
 
 
