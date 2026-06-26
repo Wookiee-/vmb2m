@@ -3,6 +3,7 @@
 MBII Server Manager — config, boot, process control, auto-restart.
 """
 
+import configparser
 import json
 import os
 import platform
@@ -60,6 +61,39 @@ RTVRTM_FIELD_MAP = {
     "rtm failed wait time": "rtm_f_wait_time", "rtm skip voting": "rtm_skip_voting",
     "rtm second turn": "rtm_second_turn", "rtm change immediately": "rtm_change_immediately",
 }
+def load_global_config():
+    """Read mbii.conf for global defaults (paths, engine, game)."""
+    conf = BASE / "mbii.conf"
+    if not conf.exists():
+        return {}
+    cfg = configparser.ConfigParser()
+    cfg.read(str(conf))
+    result = {}
+    if cfg.has_section("paths"):
+        for key in ("mbii_path", "engine", "game"):
+            val = cfg.get("paths", key, fallback="").strip()
+            if val:
+                result[key] = val
+    return result
+
+
+GLOBAL_CFG = load_global_config()
+
+
+def merge_config(instance_cfg):
+    """Apply global defaults, then instance overrides, then auto-detect."""
+    cfg = dict(GLOBAL_CFG)
+    # Apply per-instance server settings
+    server = instance_cfg.get("server", {})
+    for key in ("mbii_path", "engine", "game"):
+        if key in server:
+            cfg[key] = server[key]
+        elif key not in cfg:
+            cfg[key] = ""
+    instance_cfg["server"].update(cfg)
+    return instance_cfg
+
+
 RTVRTM_DEFAULTS = {
     "flood protection": "3", "use say only": "0", "name protection": "1",
     "default game": "", "clean log": "2 10",
@@ -86,7 +120,8 @@ def load_config(name):
         print("[ERROR] Config not found: %s" % path)
         sys.exit(1)
     with open(path) as f:
-        return json.load(f)
+        cfg = json.load(f)
+    return merge_config(cfg)
 
 
 def pid_path(name, label):
