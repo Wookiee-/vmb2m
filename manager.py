@@ -18,6 +18,25 @@ from pathlib import Path
 IS_WINDOWS = sys.platform.startswith("win")
 IS_LINUX = sys.platform.startswith("linux")
 
+class C:
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    CYAN = "\033[96m"
+    END = "\033[0m"
+
+def ok(msg):
+    print("  %s[OK]%s %s" % (C.GREEN, C.END, msg))
+
+def warn(msg):
+    print("  %s[WARN]%s %s" % (C.YELLOW, C.END, msg))
+
+def fail(msg):
+    print("  %s[ERROR]%s %s" % (C.RED, C.END, msg))
+
+def info(msg):
+    print("  %s%s%s" % (C.CYAN, msg, C.END))
+
 if not IS_WINDOWS and not IS_LINUX:
     print("[WARN] Unsupported OS: %s, Windows/Linux features may not work" % sys.platform)
 
@@ -685,20 +704,23 @@ def _init_plugins(cfg, rcon_client):
 
 def cmd_start(name):
     cfg = load_config(name)
-    print("[%s] Generating configs..." % name)
+    info("[%s] Generating configs..." % name)
     generate_server_cfg(cfg)
     generate_map_files(cfg)
     generate_rtvrtm_cfg(cfg)
 
     pid = read_pid(name, "engine")
-    if pid and is_pid_alive(pid):
-        print("[%s] Engine already running (PID %d)" % (name, pid))
+    if pid and pid != 1 and is_pid_alive(pid):
+        warn("[%s] Engine already running (PID %d)" % (name, pid))
+        return
+    if pid == 1 and _screen_alive(name):
+        warn("[%s] Engine already running (screen)" % name)
         return
 
-    print("[%s] Launching..." % name)
+    info("[%s] Launching..." % name)
     engine = start_engine(cfg)
 
-    print("[%s] Waiting for engine..." % name)
+    info("[%s] Waiting for engine..." % name)
     time.sleep(3)
 
     # RCON connection for native plugins + log watching
@@ -775,7 +797,7 @@ def cmd_start(name):
                     print("[%s] Performing scheduled restart..." % name)
                 else:
                     crashes += 1
-                    print("[%s] Engine crashed (exit %d, crash %d/%d)" % (
+                    fail("[%s] Engine crashed (exit %d, crash %d/%d)" % (
                         name, code, crashes, max_crashes))
                     if crashes >= max_crashes:
                         print("[%s] Max crashes reached, giving up" % name)
@@ -788,7 +810,7 @@ def cmd_start(name):
                     engine = object()  # Dummy — alive check uses _screen_alive
                 time.sleep(3)
     except KeyboardInterrupt:
-        print("\n[%s] Shutting down..." % name)
+        print("\n%s[%s] Shutting down...%s" % (C.YELLOW, name, C.END))
     finally:
         pm.finish_all()
         watcher.stop()
@@ -818,11 +840,12 @@ def cmd_status(name):
         pid = read_pid(name, label)
         if label == "engine" and pid == 1:
             alive = _screen_alive(name)
-            print("  engine: %s (screen)" % ("RUNNING" if alive else "STOPPED"))
+            status = "%sRUNNING%s" % (C.GREEN, C.END) if alive else "%sSTOPPED%s" % (C.RED, C.END)
+            print("  engine: %s (screen)" % status)
         else:
             alive = is_pid_alive(pid)
-            print("  %s: %s (PID %s)" % (label, "RUNNING" if alive else "STOPPED",
-                                          str(pid) if pid else "-"))
+            status = "%sRUNNING%s" % (C.GREEN, C.END) if alive else "%sSTOPPED%s" % (C.RED, C.END)
+            print("  %s: %s (PID %s)" % (label, status, str(pid) if pid else "-"))
 
 
 def _running_instances():
@@ -865,8 +888,8 @@ def cmd_list():
     for f in sorted(CONFIG_DIR.glob("*.json")):
         name = f.stem
         pid = read_pid(name, "engine")
-        alive = is_pid_alive(pid)
-        marker = "RUNNING" if alive else "STOPPED"
+        alive = is_pid_alive(pid) or (pid == 1 and _screen_alive(name))
+        marker = "%sRUNNING%s" % (C.GREEN, C.END) if alive else "%sSTOPPED%s" % (C.RED, C.END)
         print("  %s [%s]" % (name, marker))
 
 
