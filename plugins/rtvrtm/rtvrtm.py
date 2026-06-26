@@ -3775,32 +3775,34 @@ class Features(object):
   def Check(self):
 
     current_time = time()
+    t0 = self.times[0] if isinstance(self.times[0], (int, float)) else current_time + 1
+    t1 = self.times[1] if isinstance(self.times[1], (int, float)) else current_time + 1
 
     if not self.rtv and not self.rtm:
 
-      if self.times[0] <= current_time and self.times[1] <= current_time:
+      if t0 <= current_time and t1 <= current_time:
 
         self._enable_all()
         return 0
 
-      elif self.times[0] <= current_time:
+      elif t0 <= current_time:
 
         self._enable_rtv()
         return 0
 
-      elif self.times[1] <= current_time:
+      elif t1 <= current_time:
 
         self._enable_rtm()
         return 0
 
     elif not self.rtv:
 
-      if self.times[0] <= current_time:
+      if t0 <= current_time:
 
         self._enable_rtv()
         return 0
 
-    elif not self.rtm and self.times[1] <= current_time:
+    elif not self.rtm and t1 <= current_time:
 
       self._enable_rtm()
       return 0

@@ -1,11 +1,11 @@
-"""Auto-updater plugin. Checks for MBII updates on a schedule and applies when server is empty."""
+"""Auto-updater plugin. Checks for MBII updates on a schedule."""
 
 import os
 import subprocess
+import threading
 import time
 
 from plugins.base import BasePlugin
-from plugins import event_types as events
 
 
 class UpdaterPlugin(BasePlugin):
@@ -16,7 +16,7 @@ class UpdaterPlugin(BasePlugin):
         self.api = api
         self.check_interval = config.get("check_interval_minutes", 60)
         self.gamedir = config.get("gamedir", os.path.expanduser("~/openjk"))
-        self._timer = 0
+        self._last_check = 0
         self._checking = False
 
         # Find dotnet
@@ -52,62 +52,59 @@ class UpdaterPlugin(BasePlugin):
         return True
 
     def on_loop(self):
-        self._timer += 1
-        if self._timer < self.check_interval * 60:
+        if self.check_interval <= 0:
             return
-        self._timer = 0
-
+        if time.time() - self._last_check < self.check_interval * 60:
+            return
         if self._checking:
             return
+        self._last_check = time.time()
         self._checking = True
-
-        try:
-            self._check_and_update()
-        finally:
-            self._checking = False
+        threading.Thread(target=self._check_and_update, daemon=True).start()
 
     def _check_and_update(self):
-        # Check for updates
-        result = subprocess.run(
-            [self.dotnet, self.updater_dll, "-c", "-path", self.gamedir],
-            cwd=os.path.dirname(self.updater_dll),
-            capture_output=True, timeout=60,
-        )
-        out = result.stdout.decode(errors="replace").strip()
-        count = 0
-        for line in out.split("\n"):
-            try:
-                count = int(line.strip())
-                break
-            except ValueError:
-                continue
+        try:
+            result = subprocess.run(
+                [self.dotnet, self.updater_dll, "-c", "-path", self.gamedir],
+                cwd=os.path.dirname(self.updater_dll),
+                capture_output=True, timeout=180,
+            )
+            out = result.stdout.decode(errors="replace").strip()
+            count = 0
+            for line in out.split("\n"):
+                try:
+                    count = int(line.strip())
+                    break
+                except ValueError:
+                    continue
 
-        if count <= 1:
-            return
+            if count <= 1:
+                return
 
-        print("  [updater] %d updates available" % count)
+            print("  [updater] %d updates available" % count)
+            print("  [updater] Applying update...")
+            for attempt in range(1, 11):
+                try:
+                    result = subprocess.run(
+                        [self.dotnet, self.updater_dll, "-path", self.gamedir],
+                        cwd=os.path.dirname(self.updater_dll),
+                        capture_output=True, timeout=180,
+                    )
+                    if result.returncode == 0:
+                        print("  [updater] Update successful (attempt %d)" % attempt)
+                        self._patch_engine_lib()
+                        print("  [updater] Update complete")
+                        return
+                    print("  [updater] Attempt %d failed" % attempt)
+                    time.sleep(min(30, 2 ** attempt))
+                except subprocess.TimeoutExpired:
+                    print("  [updater] Attempt %d timed out" % attempt)
 
-        # Check if server is empty via RCON
-        # Simple check: try to apply update directly
-        print("  [updater] Applying update...")
-        for attempt in range(1, 11):
-            try:
-                result = subprocess.run(
-                    [self.dotnet, self.updater_dll, "-path", self.gamedir],
-                    cwd=os.path.dirname(self.updater_dll),
-                    capture_output=True, timeout=180,
-                )
-                if result.returncode == 0:
-                    print("  [updater] Update successful (attempt %d)" % attempt)
-                    self._patch_engine_lib()
-                    print("  [updater] Update complete")
-                    return
-                print("  [updater] Attempt %d failed" % attempt)
-                time.sleep(min(30, 2 ** attempt))
-            except subprocess.TimeoutExpired:
-                print("  [updater] Attempt %d timed out" % attempt)
-
-        print("  [updater] Update failed after 10 attempts")
+            print("  [updater] Update failed after 10 attempts")
+        except Exception as e:
+            print("  [updater] Check error: %s" % e)
+        finally:
+            self._checking = False
 
     def _patch_engine_lib(self):
         mbii = os.path.join(self.gamedir, "MBII")
