@@ -6,42 +6,40 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, "Segoe UI", Arial, sans-serif;
-  background: #0d0d0d;
-  color: #bbb;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #060606;
+  color: #aaa;
   padding: 30px 20px;
-  max-width: 620px;
+  max-width: 640px;
   margin: 0 auto;
 }
 h1 {
-  font-size: 1.6rem;
-  font-weight: 400;
-  color: #e67e22;
-  margin-bottom: 6px;
-  letter-spacing: 0.5px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #d48c33;
+  margin-bottom: 4px;
 }
-.sub { color: #666; font-size: 0.85rem; margin-bottom: 20px; }
+.sub { color: #555; font-size: 0.85rem; margin-bottom: 20px; border-bottom: 1px solid #111; padding-bottom: 12px; }
 label {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 10px;
-  border-radius: 3px;
+  padding: 6px 10px;
+  border-radius: 2px;
   cursor: pointer;
-  transition: background 0.15s;
 }
-label:hover { background: #151515; }
+label:hover { background: #0d0d0d; }
 input[type=checkbox] {
-  width: 16px; height: 16px;
-  accent-color: #e67e22;
+  width: 15px; height: 15px;
+  accent-color: #d48c33;
   flex-shrink: 0;
 }
-.name { min-width: 140px; color: #ddd; }
+.name { min-width: 135px; color: #fff; font-size: 0.92rem; }
 code {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #666;
-  background: #111;
-  padding: 1px 6px;
+  background: #0a0a0a;
+  padding: 1px 5px;
   border-radius: 2px;
 }
 .val {
@@ -50,43 +48,44 @@ code {
   font-size: 0.8rem;
   font-family: monospace;
 }
-.warn { color: #c0392b; font-size: 0.8rem; }
+.warn { color: #c0392b; font-size: 0.8rem; margin-left: 4px; }
 .sum {
   margin-top: 20px;
   padding: 14px 16px;
-  background: #111;
-  border-left: 3px solid #e67e22;
+  background: #0a0a0a;
+  border-left: 3px solid #d48c33;
   font-size: 1.1rem;
   color: #ccc;
+  border-radius: 1px;
 }
-.sum span { color: #e67e22; font-weight: bold; }
+.sum span { color: #d48c33; font-weight: bold; }
 pre {
   margin-top: 10px;
   padding: 12px;
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
-  border-radius: 3px;
+  background: #000;
+  border: 1px solid #151515;
   font-size: 0.85rem;
-  color: #e67e22;
+  color: #d48c33;
   overflow-x: auto;
+  border-radius: 1px;
 }
 .cpy {
   margin-top: 10px;
-  padding: 8px 20px;
-  background: #e67e22;
+  padding: 8px 22px;
+  background: #d48c33;
   color: #fff;
   border: none;
-  border-radius: 3px;
   cursor: pointer;
   font-size: 0.9rem;
+  border-radius: 2px;
 }
-.cpy:hover { background: #d35400; }
-.auto { color: #888; font-style: italic; font-size: 0.82rem; }
+.cpy:hover { background: #b8732a; }
+.auto { color: #555; font-size: 0.82rem; margin-top: 14px; font-style: italic; }
 </style>
 </head>
 <body>
 <h1>SMOD Config Calculator</h1>
-<div class="sub">Movie Battles II &mdash; select permissions to calculate admin config value</div>
+<div class="sub">Movie Battles II &mdash; select permissions to calculate the admin config value</div>
 <div id="perms"></div>
 <div class="auto">Say, Smsay, Status, Who &mdash; granted automatically</div>
 <div class="sum">Config Value: <span id="total">0</span></div>
@@ -94,7 +93,7 @@ pre {
 <button class="cpy" onclick="copy()">Copy to clipboard</button>
 
 <script>
-const perms = [
+var perms = [
   [1,    "Kick",          "smod kick &lt;name/ID&gt;"],
   [2,    "Nextmap",       "Changes to next map"],
   [4,    "Map",           "map &lt;mapname&gt;"],
@@ -112,21 +111,20 @@ const perms = [
   [16384,"Mute / Unmute", "smod mute &lt;name/ID&gt; &lt;minutes&gt;"],
   [32768,"SetTK",         "smod settk &lt;name/ID&gt; &lt;points&gt;"],
 ];
-const container = document.getElementById("perms");
-perms.forEach(([val, name, desc, cls]) => {
-  var extra = cls ? ' <span class="warn">Do not use</span>' : "";
-  var html = '<input type="checkbox" value="' + val + '" onchange="calc()">';
-  html += '<span class="name">' + name + '</span>';
-  html += desc ? '<code>' + desc + '</code>' : "";
-  html += extra;
-  html += '<span class="val">+' + val + '</span>';
+var c = document.getElementById("perms");
+for (var i = 0; i < perms.length; i++) {
+  var p = perms[i];
+  var extra = p[3] ? ' <span class="warn">Do not use</span>' : "";
   var lbl = document.createElement("label");
-  lbl.innerHTML = html;
-  container.appendChild(lbl);
-});
+  lbl.innerHTML = '<input type="checkbox" value="' + p[0] + '" onchange="calc()">'
+    + '<span class="name">' + p[1] + '</span>'
+    + (p[2] ? '<code>' + p[2] + '</code>' : "")
+    + extra
+    + '<span class="val">+' + p[0] + '</span>';
+  c.appendChild(lbl);
+}
 function calc() {
-  var total = 0;
-  var cbs = document.querySelectorAll("#perms input:checked");
+  var total = 0, cbs = document.querySelectorAll("#perms input:checked");
   for (var i = 0; i < cbs.length; i++) total += parseInt(cbs[i].value);
   document.getElementById("total").textContent = total;
   document.getElementById("output").textContent = 'seta g_smodConfig_1 "' + total + '"';
