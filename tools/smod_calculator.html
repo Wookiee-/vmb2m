@@ -110,7 +110,7 @@ adminLabel.textContent = "Generate for admins:";
 a.appendChild(adminLabel);
 for (var i = 1; i <= 10; i++) {
   var lbl = document.createElement("label");
-  lbl.innerHTML = '<input type="checkbox" checked onchange="calc()"> admin_' + i;
+  lbl.innerHTML = '<input type="checkbox" onchange="calc()"> admin_' + i;
   a.appendChild(lbl);
 }
 
