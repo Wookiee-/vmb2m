@@ -788,26 +788,13 @@ def cmd_start(name):
 
     standalone = start_standalone_plugins(cfg)
 
-    # Fork into background so terminal is freed
+    # Single fork (same pattern as mbiiez)
     if not IS_WINDOWS and not os.environ.get("MBII_FG"):
         pid = os.fork()
         if pid > 0:
             write_pid(name, "manager", pid)
             print("  Manager running as daemon (PID %d)" % pid)
             return
-        os.setsid()
-        pid2 = os.fork()
-        if pid2 > 0:
-            os._exit(0)
-        # Detach from terminal completely
-        sys.stdin.close()
-        sys.stdout.close()
-        sys.stderr.close()
-        devnull = os.open(os.devnull, os.O_RDWR)
-        os.dup2(devnull, 0)
-        os.dup2(devnull, 1)
-        os.dup2(devnull, 2)
-        os.close(devnull)
 
     pm.start_all()
 
