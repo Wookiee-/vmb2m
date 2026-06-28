@@ -742,6 +742,8 @@ def _init_plugins(cfg, rcon_client):
         if script.exists():
             continue  # standalone, handled elsewhere
         config = settings if isinstance(settings, dict) else {}
+        config["_rcon_password"] = cfg["security"]["rcon_password"]
+        config["_rcon_port"] = cfg["server"]["port"]
         pm.load_from_config({name: config})
 
     pm.start_all()
