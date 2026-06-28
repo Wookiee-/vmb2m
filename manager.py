@@ -746,7 +746,6 @@ def _init_plugins(cfg, rcon_client):
         config["_rcon_port"] = cfg["server"]["port"]
         pm.load_from_config({name: config})
 
-    pm.start_all()
     return pm
 
 
@@ -809,6 +808,8 @@ def cmd_start(name):
         os.dup2(devnull, 1)
         os.dup2(devnull, 2)
         os.close(devnull)
+
+    pm.start_all()
 
     print("[%s] Watching processes (auto-restart enabled)..." % name)
     if cfg.get("server", {}).get("restart_every_hours"):
