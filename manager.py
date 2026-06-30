@@ -577,18 +577,18 @@ def _engine_exists(name):
 
 
 def _engine_kill(name, port=None):
-    """Kill engine: screen session, mbiided binary, and wait for port to free."""
+    """Kill engine: screen session, then wait for port to free."""
     if IS_WINDOWS:
         return
-    # Kill screen session
+    # Kill screen session (only this instance)
     try:
         subprocess.run(["screen", "-S", "mb2_%s" % name, "-X", "quit"],
                        capture_output=True, timeout=5)
     except Exception:
         pass
-    # Kill engine binary by name
+    # Kill only this instance's engine by screen name
     try:
-        subprocess.run(["pkill", "-9", "-f", "mbiided.*--quiet"],
+        subprocess.run(["pkill", "-9", "-f", "screen.*mb2_%s" % name],
                        capture_output=True, timeout=5)
     except Exception:
         pass
@@ -608,9 +608,16 @@ def _engine_kill(name, port=None):
                 s.send(b"\xff\xff\xff\xffgetstatus")
                 s.recv(4096)
                 s.close()
-                time.sleep(1)  # port still in use
+                time.sleep(1)
             except Exception:
                 return  # port is free
+        # Port still in use — kill any remaining mbiided process
+        try:
+            subprocess.run(["pkill", "-9", "-f", "mbiided\\.i386"],
+                           capture_output=True, timeout=5)
+            time.sleep(3)
+        except Exception:
+            pass
 
 
 
