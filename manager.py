@@ -576,17 +576,42 @@ def _engine_exists(name):
         return False
 
 
-def _engine_kill(name):
-    """Kill a screen session for this instance."""
+def _engine_kill(name, port=None):
+    """Kill engine: screen session, mbiided binary, and wait for port to free."""
     if IS_WINDOWS:
         return
+    # Kill screen session
     try:
         subprocess.run(["screen", "-S", "mb2_%s" % name, "-X", "quit"],
                        capture_output=True, timeout=5)
-        subprocess.run(["pkill", "-f", "mb2_%s" % name],
+    except Exception:
+        pass
+    # Kill engine binary by name
+    try:
+        subprocess.run(["pkill", "-9", "-f", "mbiided.*--quiet"],
                        capture_output=True, timeout=5)
     except Exception:
         pass
+    # Wipe dead screens
+    try:
+        subprocess.run(["screen", "-wipe"], capture_output=True, timeout=5)
+    except Exception:
+        pass
+    # Wait for port to free up
+    if port:
+        import socket as _sk
+        for _ in range(15):
+            try:
+                s = _sk.socket(_sk.AF_INET, _sk.SOCK_DGRAM)
+                s.settimeout(1)
+                s.connect(("127.0.0.1", port))
+                s.send(b"\xff\xff\xff\xffgetstatus")
+                s.recv(4096)
+                s.close()
+                time.sleep(1)  # port still in use
+            except Exception:
+                return  # port is free
+
 
 
 def find_engine(cfg=None):
@@ -640,7 +665,7 @@ def start_engine(cfg):
         return None
     # Clean up any stale/dead screen sessions for this name
     if not IS_WINDOWS:
-        _engine_kill(cfg["name"])
+        _engine_kill(cfg["name"], port)
         subprocess.run(["screen", "-wipe"], capture_output=True, timeout=5)
 
     env = build_env()
@@ -711,14 +736,13 @@ def start_standalone_plugins(cfg):
     return procs
 
 
-def stop_processes(name):
+def stop_processes(name, port=None):
     for pid_file in PID_DIR.glob("%s_*.pid" % name):
         label = pid_file.stem.replace(name + "_", "")
         pid = read_pid(name, label)
         if label == "engine" and pid == 1:
-            # Running under screen — kill screen session
             if _engine_alive(name):
-                _engine_kill(name)
+                _engine_kill(name, port)
                 print("  Stopped engine (screen: mb2_%s)" % name)
             remove_pid(name, label)
         elif pid and is_pid_alive(pid):
@@ -843,10 +867,11 @@ def cmd_start(name):
                 elapsed = time.time() - engine_start
                 if elapsed >= restart_hours * 3600:
                     print("[%s] Scheduled restart after %d hours" % (name, restart_hours))
+                    rport = cfg["server"]["port"]
                     if engine:
                         kill_pid(engine.pid)
                     else:
-                        _engine_kill(name)
+                        _engine_kill(name, rport)
                     remove_pid(name, "engine")
                     engine_alive = False
 
@@ -879,18 +904,17 @@ def cmd_start(name):
         pm.finish_all()
         watcher.stop()
         rcon.disconnect()
-        stop_processes(name)
+        stop_processes(name, cfg["server"]["port"])
         print("[%s] Stopped" % name)
 
 
 def cmd_stop(name):
     print("[%s] Stopping..." % name)
-    stop_processes(name)
-    # Kill manager daemon too
-    mpid = read_pid(name, "manager")
-    if mpid and is_pid_alive(mpid):
-        kill_pid(mpid)
-        remove_pid(name, "manager")
+    try:
+        cfg = load_config(name)
+        stop_processes(name, cfg["server"]["port"])
+    except Exception:
+        stop_processes(name)
     print("[%s] Stopped" % name)
 
 
