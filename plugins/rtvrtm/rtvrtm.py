@@ -4054,7 +4054,7 @@ def main(argv):
   print("Done!")
   print("[*] Reading log file until EOF...", end="")
 
-  with open(config.logfile, "rt+") as log:
+  with open(config.logfile, "r+", encoding="utf-8", errors="replace") as log:
 
     seek = log.seek
     truncate  = log.truncate
