@@ -905,6 +905,9 @@ def cmd_start(name):
                 engine = start_engine(cfg)
                 engine_start = time.time()
                 time.sleep(3)
+                # Re-launch standalone plugins (rtvrtm, etc.) inside the new engine session
+                new_standalone = start_standalone_plugins(cfg)
+                standalone.update(new_standalone)
     except KeyboardInterrupt:
         print("\n%s[%s] Shutting down...%s" % (C.YELLOW, name, C.END))
     finally:
