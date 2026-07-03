@@ -668,12 +668,20 @@ def start_engine(cfg):
         "+exec", server_cfg,
     ]
 
-    if _engine_exists(cfg["name"]):
-        return None
-    # Clean up any stale/dead screen sessions for this name
+    # Always clean up any stale/dead screen sessions before starting
     if not IS_WINDOWS:
         _engine_kill(cfg["name"], port)
-        subprocess.run(["screen", "-wipe"], capture_output=True, timeout=5)
+        # Verify it's actually gone — force kill if still lingering
+        for _ in range(5):
+            r = subprocess.run(["screen", "-list"], capture_output=True, timeout=5, text=True)
+            if "mb2_%s" % cfg["name"] not in r.stdout:
+                break
+            subprocess.run(["screen", "-S", "mb2_%s" % cfg["name"], "-X", "quit"],
+                           capture_output=True, timeout=5)
+            subprocess.run(["pkill", "-9", "-f", "mb2_%s" % cfg["name"]],
+                           capture_output=True, timeout=5)
+            subprocess.run(["screen", "-wipe"], capture_output=True, timeout=5)
+            time.sleep(1)
 
     env = build_env()
     mimalloc_lib = env.pop("LD_PRELOAD", None)
