@@ -918,7 +918,7 @@ def cmd_start(name):
                     fail("[%s] Engine failed to start" % name)
                 new_standalone = start_standalone_plugins(cfg)
                 standalone.update(new_standalone)
-        except KeyboardInterrupt:
+    except KeyboardInterrupt:
         print("\n%s[%s] Shutting down...%s" % (C.YELLOW, name, C.END))
     finally:
         pm.finish_all()
