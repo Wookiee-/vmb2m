@@ -842,6 +842,7 @@ def cmd_start(name):
     crashes = 0
     max_crashes = 5
     tick = 0
+    _restarting = False
     engine_start = time.time()
     restart_hours = cfg.get("server", {}).get("restart_every_hours", 0)
 
@@ -872,18 +873,21 @@ def cmd_start(name):
                         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         write_pid(name, sname, p.pid)
 
-            # Scheduled restart check
+            # Scheduled restart check — full process restart like mbiiez
             if engine_alive and restart_hours > 0:
                 elapsed = time.time() - engine_start
                 if elapsed >= restart_hours * 3600:
-                    print("[%s] Scheduled restart after %d hours" % (name, restart_hours))
-                    rport = cfg["server"]["port"]
-                    if engine:
-                        kill_pid(engine.pid)
-                    else:
-                        _engine_kill(name, rport)
-                    remove_pid(name, "engine")
-                    engine_alive = False
+                    info("[%s] Scheduled restart after %d hours" % (name, restart_hours))
+                    print("[%s] Spawning new process..." % name)
+                    _restarting = True
+                    # Spawn a fresh manager process, this one will exit
+                    subprocess.Popen(
+                        [sys.executable, sys.argv[0], name, "start"],
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    break  # Exit this daemon — new one takes over
 
             if not engine_alive:
                 if engine:
@@ -907,23 +911,24 @@ def cmd_start(name):
                 time.sleep(5)
                 engine = start_engine(cfg)
                 engine_start = time.time()
-                # Verify engine actually started
                 time.sleep(3)
                 if not engine and _engine_alive(name):
                     ok("[%s] Engine restarted successfully" % name)
                 elif not engine:
                     fail("[%s] Engine failed to start" % name)
-                # Re-launch standalone plugins (rtvrtm, etc.)
                 new_standalone = start_standalone_plugins(cfg)
                 standalone.update(new_standalone)
-    except KeyboardInterrupt:
+        except KeyboardInterrupt:
         print("\n%s[%s] Shutting down...%s" % (C.YELLOW, name, C.END))
     finally:
         pm.finish_all()
         watcher.stop()
         rcon.disconnect()
-        stop_processes(name, cfg["server"]["port"])
-        print("[%s] Stopped" % name)
+        if not _restarting:
+            stop_processes(name, cfg["server"]["port"])
+            print("[%s] Stopped" % name)
+        else:
+            print("[%s] Old daemon exiting, new process taking over" % name)
 
 
 def cmd_stop(name):
