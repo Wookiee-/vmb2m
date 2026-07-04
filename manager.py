@@ -611,13 +611,8 @@ def _engine_kill(name, port=None):
                 time.sleep(1)
             except Exception:
                 return  # port is free
-        # Port still in use — kill any remaining mbiided process
-        try:
-            subprocess.run(["pkill", "-9", "-f", "mbiided\\.i386"],
-                           capture_output=True, timeout=5)
-            time.sleep(3)
-        except Exception:
-            pass
+        # Port still in use — give up, will retry on next loop
+        warn("[%s] Port %d still in use after 15s, will retry" % (name, port))
 
 
 
@@ -912,8 +907,13 @@ def cmd_start(name):
                 time.sleep(5)
                 engine = start_engine(cfg)
                 engine_start = time.time()
+                # Verify engine actually started
                 time.sleep(3)
-                # Re-launch standalone plugins (rtvrtm, etc.) inside the new engine session
+                if not engine and _engine_alive(name):
+                    ok("[%s] Engine restarted successfully" % name)
+                elif not engine:
+                    fail("[%s] Engine failed to start" % name)
+                # Re-launch standalone plugins (rtvrtm, etc.)
                 new_standalone = start_standalone_plugins(cfg)
                 standalone.update(new_standalone)
     except KeyboardInterrupt:
