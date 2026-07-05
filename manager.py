@@ -848,24 +848,25 @@ def cmd_start(name):
 
     try:
         while True:
-            tick += 1
-            watcher.poll()
-            pm.loop_all()
+            try:
+                tick += 1
+                watcher.poll()
+                pm.loop_all()
 
-            engine_alive = is_pid_alive(engine.pid) if engine and hasattr(engine, 'pid') else _engine_alive(name)
+                engine_alive = is_pid_alive(engine.pid) if engine and hasattr(engine, 'pid') else _engine_alive(name)
 
-            for sname, sproc in list(standalone.items()):
-                if not is_pid_alive(sproc.pid):
-                    sproc.poll()
-                    print("  [%s] died, restarting..." % sname)
-                    script = BASE / "plugins" / sname / ("%s.py" % sname)
-                    cmd = [sys.executable, str(script)]
-                    rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
-                    if rtvcfg.exists():
-                        cmd += ["-c", str(rtvcfg)]
-                    if _engine_exists(name):
-                        cmd_str = " ".join(cmd)
-                        logfile = mbii_dir(cfg) / ("%s-rtvrtm.log" % name)
+                for sname, sproc in list(standalone.items()):
+                    if not is_pid_alive(sproc.pid):
+                        sproc.poll()
+                        print("  [%s] died, restarting..." % sname)
+                        script = BASE / "plugins" / sname / ("%s.py" % sname)
+                        cmd = [sys.executable, str(script)]
+                        rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
+                        if rtvcfg.exists():
+                            cmd += ["-c", str(rtvcfg)]
+                        if _engine_exists(name):
+                            cmd_str = " ".join(cmd)
+                            logfile = mbii_dir(cfg) / ("%s-rtvrtm.log" % name)
                         cmd_str = "%s > %s 2>&1" % (cmd_str, logfile)
                         subprocess.Popen(["screen", "-S", "mb2_%s" % name, "-X", "screen", "sh", "-c", cmd_str],
                                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -873,51 +874,55 @@ def cmd_start(name):
                         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         write_pid(name, sname, p.pid)
 
-            # Scheduled restart check — full process restart like mbiiez
-            if engine_alive and restart_hours > 0:
-                elapsed = time.time() - engine_start
-                if elapsed >= restart_hours * 3600:
-                    info("[%s] Scheduled restart after %d hours" % (name, restart_hours))
-                    print("[%s] Spawning new process..." % name)
-                    _restarting = True
-                    # Spawn a fresh manager process, this one will exit
-                    subprocess.Popen(
-                        [sys.executable, sys.argv[0], name, "start"],
-                        stdin=subprocess.DEVNULL,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
-                    break  # Exit this daemon — new one takes over
-
-            if not engine_alive:
-                if engine:
-                    engine.poll()
-                    code = engine.returncode if engine.returncode is not None else -1
-                    is_scheduled = code == -1
-                else:
-                    code = -1
-                    is_scheduled = True
-                if is_scheduled:
-                    crashes = 0
-                    print("[%s] Performing scheduled restart..." % name)
-                else:
-                    crashes += 1
-                    fail("[%s] Engine crashed (exit %d, crash %d/%d)" % (
-                        name, code, crashes, max_crashes))
-                    if crashes >= max_crashes:
-                        print("[%s] Max crashes reached, giving up" % name)
+                # Scheduled restart check — full process restart like mbiiez
+                if engine_alive and restart_hours > 0:
+                    elapsed = time.time() - engine_start
+                    if elapsed >= restart_hours * 3600:
+                        info("[%s] Scheduled restart after %d hours" % (name, restart_hours))
+                        print("[%s] Spawning new process..." % name)
+                        _restarting = True
+                        subprocess.Popen(
+                            [sys.executable, sys.argv[0], name, "start"],
+                            stdin=subprocess.DEVNULL,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
                         break
-                print("[%s] Restarting engine in 5s..." % name)
-                time.sleep(5)
-                engine = start_engine(cfg)
-                engine_start = time.time()
-                time.sleep(3)
-                if not engine and _engine_alive(name):
-                    ok("[%s] Engine restarted successfully" % name)
-                elif not engine:
-                    fail("[%s] Engine failed to start" % name)
-                new_standalone = start_standalone_plugins(cfg)
-                standalone.update(new_standalone)
+
+                if not engine_alive:
+                    if engine:
+                        engine.poll()
+                        code = engine.returncode if engine.returncode is not None else -1
+                        is_scheduled = code == -1
+                    else:
+                        code = -1
+                        is_scheduled = True
+                    if is_scheduled:
+                        crashes = 0
+                        print("[%s] Performing scheduled restart..." % name)
+                    else:
+                        crashes += 1
+                        fail("[%s] Engine crashed (exit %d, crash %d/%d)" % (
+                            name, code, crashes, max_crashes))
+                        if crashes >= max_crashes:
+                            print("[%s] Max crashes reached, giving up" % name)
+                            break
+                    print("[%s] Restarting engine in 5s..." % name)
+                    time.sleep(5)
+                    engine = start_engine(cfg)
+                    engine_start = time.time()
+                    time.sleep(3)
+                    if not engine and _engine_alive(name):
+                        ok("[%s] Engine restarted successfully" % name)
+                    elif not engine:
+                        fail("[%s] Engine failed to start" % name)
+                    new_standalone = start_standalone_plugins(cfg)
+                    standalone.update(new_standalone)
+            except Exception as e:
+                fail("[%s] Watchdog error: %s" % (name, e))
+                import traceback
+                traceback.print_exc()
+            time.sleep(2)
     except KeyboardInterrupt:
         print("\n%s[%s] Shutting down...%s" % (C.YELLOW, name, C.END))
     finally:
