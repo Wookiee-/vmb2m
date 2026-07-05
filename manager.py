@@ -853,7 +853,10 @@ def cmd_start(name):
                 watcher.poll()
                 pm.loop_all()
 
-                engine_alive = is_pid_alive(engine.pid) if engine and hasattr(engine, 'pid') else _engine_alive(name)
+                try:
+                    engine_alive = is_pid_alive(engine.pid) if engine and hasattr(engine, 'pid') else _engine_alive(name)
+                except Exception:
+                    engine_alive = False  # Assume dead on check failure
 
                 for sname, sproc in list(standalone.items()):
                     if not is_pid_alive(sproc.pid):
