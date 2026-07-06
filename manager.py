@@ -829,6 +829,11 @@ def cmd_start(name):
             write_pid(name, "manager", pid)
             print("  Manager running as daemon (PID %d)" % pid)
             return
+        # Detach from terminal so child survives logout
+        os.setsid()
+        sys.stdin = open(os.devnull)
+        sys.stdout = open(os.devnull, "w")
+        sys.stderr = open(os.devnull, "w")
 
     pm.start_all()
 
