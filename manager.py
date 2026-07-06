@@ -832,8 +832,10 @@ def cmd_start(name):
         # Detach from terminal so child survives logout
         os.setsid()
         sys.stdin = open(os.devnull)
-        sys.stdout = open(os.devnull, "w")
-        sys.stderr = open(os.devnull, "w")
+        daemon_log = open(os.path.expanduser("~/mbii_%s.log" % name), "a", 1)
+        sys.stdout = daemon_log
+        sys.stderr = daemon_log
+        print("=== Daemon started at %s ===" % time.strftime("%Y-%m-%d %H:%M:%S"))
 
     pm.start_all()
 
