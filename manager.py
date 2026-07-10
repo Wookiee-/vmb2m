@@ -547,18 +547,16 @@ def generate_rtvrtm_cfg(cfg):
 
 
 def _engine_alive(name):
-    """Check if engine process is actually running."""
+    """Check if engine supervisor (or engine) is running."""
     if IS_WINDOWS:
         pid = read_pid(name, "engine")
         return is_pid_alive(pid) if pid else False
+    pid = read_pid(name, "engine")
+    if is_pid_alive(pid):
+        return True  # Supervisor PID is alive
     try:
         r = subprocess.run(["screen", "-list"], capture_output=True, timeout=5, text=True)
-        if "mb2_%s" % name not in r.stdout:
-            return False
-        # Screen exists — verify engine binary is actually running inside it
-        r2 = subprocess.run(["pgrep", "-f", "mbiided.*%s" % name],
-                            capture_output=True, timeout=5)
-        return r2.returncode == 0
+        return "mb2_%s" % name in r.stdout
     except Exception:
         return False
 
@@ -706,13 +704,33 @@ def start_engine(cfg):
 
     if using_screen:
         subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=str(instance_dir))
-        write_pid(cfg["name"], "engine", 1)  # Dummy PID, checked via screen/port
-        ok("Engine starting in screen: %s" % screen_name)
     else:
         proc = subprocess.Popen(cmd, stderr=subprocess.DEVNULL, **kwargs)
         write_pid(cfg["name"], "engine", proc.pid)
         ok("Engine started (PID %d)" % proc.pid)
         return proc
+
+    # Fork a dedicated supervisor for screen mode (mbiiez pattern)
+    spid = os.fork()
+    if spid == 0:
+        # Child: engine supervisor — only job is to keep engine running
+        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+        crashes = 0
+        while crashes < 10:
+            time.sleep(3)
+            if _engine_alive(cfg["name"]):
+                continue
+            if not _engine_exists(cfg["name"]):
+                break  # screen session gone, give up
+            crashes += 1
+            print("[%s] Engine supervisor restarting (crash %d/10)" % (cfg["name"], crashes))
+            subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, env=env, cwd=str(instance_dir))
+            time.sleep(5)
+        os._exit(0)
+    # Parent: return to main loop
+    write_pid(cfg["name"], "engine", spid)
+    ok("Engine started in screen: %s (supervisor PID %d)" % (screen_name, spid))
     return None
 
 
