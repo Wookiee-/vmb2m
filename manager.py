@@ -766,6 +766,8 @@ def start_standalone_plugins(cfg):
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             write_pid(cfg["name"], pname, 1)
             print("  [%s] Started in screen: %s" % (pname, screen_name))
+            # Add a dummy sentinel so health check loop picks it up
+            procs[pname] = type("Dummy", (), {"pid": 1})()
         else:
             proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             write_pid(cfg["name"], pname, proc.pid)
@@ -896,7 +898,8 @@ def cmd_start(name):
                 for sname, sproc in list(standalone.items()):
                     alive = is_pid_alive(sproc.pid) if sproc.pid != 1 else _plugin_alive(sname)
                     if not alive:
-                        sproc.poll()
+                        if hasattr(sproc, 'poll'):
+                            sproc.poll()
                         print("  [%s] died, restarting..." % sname)
                         script = BASE / "plugins" / sname / ("%s.py" % sname)
                         cmd = [sys.executable, str(script)]
