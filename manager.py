@@ -640,6 +640,16 @@ def find_engine(cfg=None):
     return name
 
 
+def _plugin_alive(name):
+    """Check if a standalone plugin (launched in screen) is still running."""
+    try:
+        r = subprocess.run(["pgrep", "-f", "rtvrtm.*%s" % name],
+                           capture_output=True, timeout=5)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
 def start_engine(cfg):
     engine = cfg["server"].get("engine", "")
     if not engine:
@@ -884,7 +894,8 @@ def cmd_start(name):
                     engine_alive = False  # Assume dead on check failure
 
                 for sname, sproc in list(standalone.items()):
-                    if not is_pid_alive(sproc.pid):
+                    alive = is_pid_alive(sproc.pid) if sproc.pid != 1 else _plugin_alive(sname)
+                    if not alive:
                         sproc.poll()
                         print("  [%s] died, restarting..." % sname)
                         script = BASE / "plugins" / sname / ("%s.py" % sname)
