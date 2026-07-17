@@ -909,9 +909,9 @@ def cmd_start(name):
                         if _engine_exists(name):
                             cmd_str = " ".join(cmd)
                             logfile = mbii_dir(cfg) / ("%s-rtvrtm.log" % name)
-                        cmd_str = "%s > %s 2>&1" % (cmd_str, logfile)
-                        subprocess.Popen(["screen", "-S", "mb2_%s" % name, "-X", "screen", "sh", "-c", cmd_str],
-                                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            cmd_str = "%s > %s 2>&1" % (cmd_str, logfile)
+                            subprocess.Popen(["screen", "-S", "mb2_%s" % name, "-X", "screen", "sh", "-c", cmd_str],
+                                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     else:
                         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         write_pid(name, sname, p.pid)
