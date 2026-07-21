@@ -81,28 +81,18 @@ sudo ln -sf "$SCRIPTPATH/manager.py" "/usr/bin/mbii"
 echo "  [OK] Shortcut: mbii"
 
 # ── .NET SDK 6.0 ──
-if [ ! -f "$HOME/.dotnet/dotnet" ]; then
+if ! command -v dotnet >/dev/null 2>&1 && [ ! -f "$HOME/.dotnet/dotnet" ]; then
     echo "  [....] Installing .NET SDK 6.0..."
     cd "$SCRIPTPATH"
-    if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get install -y dotnet-sdk-6.0 2>/dev/null || \
-        wget -q https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh && \
-        chmod +x dotnet-install.sh && \
-        ./dotnet-install.sh --channel 6.0
-    elif command -v dnf >/dev/null 2>&1; then
-        sudo dnf install -y dotnet-sdk-6.0
-    elif command -v pacman >/dev/null 2>&1; then
-        sudo pacman -S --noconfirm dotnet-sdk-6.0
+    wget -q https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+    chmod +x dotnet-install.sh
+    ./dotnet-install.sh --channel 6.0
+    if [ -f "$HOME/.dotnet/dotnet" ]; then
+        echo "  [OK] .NET SDK 6.0 installed to ~/.dotnet"
+        echo "  Add to PATH: export PATH=\$PATH:\$HOME/.dotnet"
     else
-        wget -q https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
-        chmod +x dotnet-install.sh
-        ./dotnet-install.sh --channel 6.0
-    fi
-    if [ -f "$HOME/.dotnet/dotnet" ] || command -v dotnet >/dev/null 2>&1; then
-        echo "  [OK] .NET SDK 6.0 installed"
-    else
-        echo "  [WARN] .NET SDK 6.0 may not have installed correctly"
-        echo "  Download manually from: https://dotnet.microsoft.com/en-us/download/dotnet/6.0"
+        echo "  [WARN] Could not install .NET SDK 6.0"
+        echo "  Download from: https://dotnet.microsoft.com/en-us/download/dotnet/6.0"
     fi
 fi
 
