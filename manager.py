@@ -988,6 +988,73 @@ def cmd_stop(name):
     print("[%s] Stopped" % name)
 
 
+def cmd_update():
+    """Stop all running instances, update MBII, restart them."""
+    running = []
+    for f in CONFIG_DIR.glob("*.json"):
+        name = f.stem
+        pid = read_pid(name, "engine")
+        if pid and (is_pid_alive(pid) or (pid == 1 and _engine_alive(name))):
+            running.append(name)
+
+    if not running:
+        print("[UPDATE] No running instances")
+    else:
+        print("[UPDATE] Stopping: %s" % ", ".join(running))
+        for name in running:
+            stop_processes(name)
+
+    # Run dotnet updater
+    import socket as _sk
+    dotnet = None
+    for p in ["~/.dotnet/dotnet", "/usr/share/dotnet/dotnet", "/usr/bin/dotnet"]:
+        p = os.path.expanduser(p)
+        if os.path.exists(p):
+            dotnet = p
+            break
+    if not dotnet:
+        try:
+            subprocess.run(["which", "dotnet"], capture_output=True, check=True)
+            dotnet = "dotnet"
+        except Exception:
+            print("[UPDATE] .NET SDK not found")
+            return
+
+    dll = os.path.expanduser("~/openjk/MBII_CommandLine_Update_XPlatform.dll")
+    if not os.path.exists(dll):
+        dll2 = os.path.join(os.path.dirname(__file__), "updater", "MBII_CommandLine_Update_XPlatform.dll")
+        if os.path.exists(dll2):
+            dll = dll2
+        else:
+            print("[UPDATE] Updater DLL not found")
+            return
+
+    print("[UPDATE] Running MBII updater...")
+    gamedir = os.path.dirname(dll)
+    for attempt in range(1, 11):
+        try:
+            r = subprocess.run([dotnet, dll, "-path", gamedir],
+                               capture_output=True, timeout=180, cwd=gamedir)
+            if r.returncode == 0:
+                print("[UPDATE] MBII updated successfully")
+                break
+            print("[UPDATE] Attempt %d failed" % attempt)
+            time.sleep(min(30, 2 ** attempt))
+        except subprocess.TimeoutExpired:
+            print("[UPDATE] Attempt %d timed out" % attempt)
+
+    # Restart instances
+    if running:
+        print("[UPDATE] Restarting: %s" % ", ".join(running))
+        for name in running:
+            subprocess.Popen(
+                [sys.executable, sys.argv[0], name, "start"],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+
+    print("[UPDATE] Done")
+
+
 def cmd_restart(name):
     cmd_stop(name)
     time.sleep(2)
@@ -1066,6 +1133,10 @@ def main():
 
     if sys.argv[1] == "--list":
         cmd_list()
+        return
+
+    if sys.argv[1] == "--update":
+        cmd_update()
         return
 
     name = sys.argv[1]
