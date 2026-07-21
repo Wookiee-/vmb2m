@@ -1127,8 +1127,7 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: manager.py <name> <start|stop|restart|status>")
         print("       manager.py --list")
-        print("")
-        print("Updates are handled automatically by the updater plugin.")
+        print("       manager.py --update")
         sys.exit(1)
 
     if sys.argv[1] == "--list":
@@ -1140,6 +1139,9 @@ def main():
         return
 
     name = sys.argv[1]
+    if name == "update" and len(sys.argv) == 2:
+        cmd_update()
+        return
     action = sys.argv[2] if len(sys.argv) > 2 else "start"
 
     actions = {
