@@ -1006,15 +1006,17 @@ def cmd_update():
 
     # Run dotnet updater
     import socket as _sk
-    dotnet = None
-    for p in ["~/.dotnet/dotnet", "/usr/share/dotnet/dotnet", "/usr/bin/dotnet"]:
-        p = os.path.expanduser(p)
-        if os.path.exists(p):
-            dotnet = p
-            break
-    if not dotnet:
+    dotnet_root = os.environ.get("DOTNET_ROOT", os.path.expanduser("~/.dotnet"))
+    dotnet = os.path.join(dotnet_root, "dotnet")
+    if not os.path.exists(dotnet):
+        for p in ["/usr/share/dotnet/dotnet", "/usr/bin/dotnet"]:
+            if os.path.exists(p):
+                dotnet = p
+                break
+    if not os.path.exists(dotnet):
         print("[UPDATE] .NET SDK not found. Run ./install.sh to install it.")
         return
+    os.environ["DOTNET_ROOT"] = os.path.dirname(dotnet)
 
     dll = os.path.expanduser("~/openjk/MBII_CommandLine_Update_XPlatform.dll")
     if not os.path.exists(dll):
