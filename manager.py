@@ -780,11 +780,13 @@ def stop_processes(name, port=None):
     for pid_file in PID_DIR.glob("%s_*.pid" % name):
         label = pid_file.stem.replace(name + "_", "")
         pid = read_pid(name, label)
-        if label == "engine" and pid == 1:
-            if _engine_alive(name):
-                _engine_kill(name, port)
-                print("  Stopped engine (screen: mb2_%s)" % name)
+        if label == "engine" and (pid == 1 or is_pid_alive(pid)):
+            # Kill engine: screen session, supervisor, and everything
+            _engine_kill(name, port)
+            if pid != 1:
+                kill_pid(pid)  # Kill supervisor too
             remove_pid(name, label)
+            print("  Stopped engine")
         elif pid and is_pid_alive(pid):
             kill_pid(pid)
             print("  Stopped %s (PID %d)" % (label, pid))
