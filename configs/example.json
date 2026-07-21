@@ -6,7 +6,10 @@
     "restart_every_hours": 24
   },
   "plugins": {
-    "rtvrtm": true,
+    "rtvrtm": {
+      "rtv": 1,
+      "rtm": 0
+    },
     "automessage": {
       "messages": [
         "Welcome to the server!",
