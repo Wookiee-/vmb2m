@@ -1013,12 +1013,8 @@ def cmd_update():
             dotnet = p
             break
     if not dotnet:
-        try:
-            subprocess.run(["which", "dotnet"], capture_output=True, check=True)
-            dotnet = "dotnet"
-        except Exception:
-            print("[UPDATE] .NET SDK not found")
-            return
+        print("[UPDATE] .NET SDK not found. Run ./install.sh to install it.")
+        return
 
     dll = os.path.expanduser("~/openjk/MBII_CommandLine_Update_XPlatform.dll")
     if not os.path.exists(dll):
