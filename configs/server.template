@@ -63,7 +63,7 @@ seta g_dismember "100"
 seta g_allowNPC "1"
 seta g_AllowEntity_target_level_change "0"
 seta g_InactivityKick "0"
-seta g_InactivitySpec "180"
+seta g_InactivitySpec "0"
 seta g_filterban "1"
 
 seta g_DuelMidRoundRespawnTimerInitial "[DuelMidRoundRespawnTimerInitial]"
