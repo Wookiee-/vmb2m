@@ -88,8 +88,8 @@ if ! command -v dotnet >/dev/null 2>&1 && [ ! -f "$HOME/.dotnet/dotnet" ]; then
     chmod +x dotnet-install.sh
     ./dotnet-install.sh --channel 6.0
     if [ -f "$HOME/.dotnet/dotnet" ]; then
-        echo "  [OK] .NET SDK 6.0 installed to ~/.dotnet"
-        echo "  Add to PATH: export PATH=\$PATH:\$HOME/.dotnet"
+        sudo ln -sf "$HOME/.dotnet/dotnet" "/usr/bin/dotnet" 2>/dev/null || true
+        echo "  [OK] .NET SDK 6.0 installed"
     else
         echo "  [WARN] Could not install .NET SDK 6.0"
         echo "  Download from: https://dotnet.microsoft.com/en-us/download/dotnet/6.0"
