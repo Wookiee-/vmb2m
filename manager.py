@@ -916,15 +916,14 @@ def cmd_start(name):
                         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         write_pid(name, sname, p.pid)
 
-                # Scheduled restart check — full process restart like mbiiez
+                # Scheduled restart — spawn restart (stop then start)
                 if engine_alive and restart_hours > 0:
                     elapsed = time.time() - engine_start
                     if elapsed >= restart_hours * 3600:
                         info("[%s] Scheduled restart after %d hours" % (name, restart_hours))
-                        print("[%s] Spawning new process..." % name)
                         _restarting = True
                         subprocess.Popen(
-                            [sys.executable, sys.argv[0], name, "start"],
+                            [sys.executable, sys.argv[0], name, "restart"],
                             stdin=subprocess.DEVNULL,
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
