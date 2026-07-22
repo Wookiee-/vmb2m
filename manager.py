@@ -595,6 +595,12 @@ def _engine_kill(name, port=None):
         subprocess.run(["screen", "-wipe"], capture_output=True, timeout=5)
     except Exception:
         pass
+    # Kill engine binary directly if still running
+    try:
+        subprocess.run(["pkill", "-9", "-f", "mbiided.*%s" % name],
+                       capture_output=True, timeout=5)
+    except Exception:
+        pass
     # Wait for port to free up
     if port:
         import socket as _sk
