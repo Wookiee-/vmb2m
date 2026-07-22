@@ -595,9 +595,9 @@ def _engine_kill(name, port=None):
         subprocess.run(["screen", "-wipe"], capture_output=True, timeout=5)
     except Exception:
         pass
-    # Kill engine binary directly if still running
+    # Kill engine by its unique server config (only this instance)
     try:
-        subprocess.run(["pkill", "-9", "-f", "mbiided.*%s" % name],
+        subprocess.run(["pkill", "-9", "-f", "\\+exec %s-server\\.cfg" % name],
                        capture_output=True, timeout=5)
     except Exception:
         pass
