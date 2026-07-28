@@ -768,19 +768,10 @@ def start_standalone_plugins(cfg):
             cmd += ["-c", str(rtvcfg)]
         # Launch inside the engine's screen session if it exists
         screen_name = "mb2_%s" % cfg["name"]
-        if not IS_WINDOWS and _engine_exists(cfg["name"]):
-            cmd_str = " ".join(cmd)
-            subprocess.Popen(["screen", "-S", screen_name, "-X", "screen", "sh", "-c", cmd_str],
-                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            write_pid(cfg["name"], pname, 1)
-            print("  [%s] Started in screen: %s" % (pname, screen_name))
-            # Add a dummy sentinel so health check loop picks it up
-            procs[pname] = type("Dummy", (), {"pid": 1})()
-        else:
-            proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            write_pid(cfg["name"], pname, proc.pid)
-            print("  [%s] Started (PID %d)" % (pname, proc.pid))
-            procs[pname] = proc
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        write_pid(cfg["name"], pname, proc.pid)
+        print("  [%s] Started (PID %d)" % (pname, proc.pid))
+        procs[pname] = proc
     return procs
 
 
@@ -904,23 +895,15 @@ def cmd_start(name):
                     engine_alive = False  # Assume dead on check failure
 
                 for sname, sproc in list(standalone.items()):
-                    alive = is_pid_alive(sproc.pid) if sproc.pid != 1 else _plugin_alive(sname)
-                    if not alive:
-                        if hasattr(sproc, 'poll'):
-                            sproc.poll()
-                        print("  [%s] died, restarting..." % sname)
+                    if is_pid_alive(sproc.pid):
+                        continue
+                    sproc.poll()
+                    print("  [%s] died, restarting..." % sname)
                         script = BASE / "plugins" / sname / ("%s.py" % sname)
                         cmd = [sys.executable, str(script)]
                         rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
                         if rtvcfg.exists():
                             cmd += ["-c", str(rtvcfg)]
-                        if _engine_exists(name):
-                            cmd_str = " ".join(cmd)
-                            logfile = mbii_dir(cfg) / ("%s-rtvrtm.log" % name)
-                            cmd_str = "%s > %s 2>&1" % (cmd_str, logfile)
-                            subprocess.Popen(["screen", "-S", "mb2_%s" % name, "-X", "screen", "sh", "-c", cmd_str],
-                                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    else:
                         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         write_pid(name, sname, p.pid)
 
