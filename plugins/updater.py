@@ -56,7 +56,16 @@ class UpdaterPlugin(BasePlugin):
                     return
                 time.sleep(1)
 
+    def _clean_crash_logs(self):
+        import glob
+        for f in glob.glob(os.path.join(self.gamedir, "MBIIPatcher_CrashLog_*.log")):
+            try:
+                os.remove(f)
+            except Exception:
+                pass
+
     def _check_and_update(self):
+        self._clean_crash_logs()
         try:
             result = subprocess.run(
                 [self.dotnet, self.dll, "-c", "-path", self.gamedir],

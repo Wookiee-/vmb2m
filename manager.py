@@ -1098,6 +1098,11 @@ def _running_instances():
             except Exception as e:
                 print("  [%s] Failed to restart: %s" % (name, e))
 
+    for f in __import__("glob").glob(os.path.join(gamedir, "MBIIPatcher_CrashLog_*.log")):
+        try:
+            os.remove(f)
+        except Exception:
+            pass
     print("[UPDATE] Done")
 
 
