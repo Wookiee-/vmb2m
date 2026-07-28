@@ -899,13 +899,13 @@ def cmd_start(name):
                         continue
                     sproc.poll()
                     print("  [%s] died, restarting..." % sname)
-                        script = BASE / "plugins" / sname / ("%s.py" % sname)
-                        cmd = [sys.executable, str(script)]
-                        rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
-                        if rtvcfg.exists():
-                            cmd += ["-c", str(rtvcfg)]
-                        p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        write_pid(name, sname, p.pid)
+                    script = BASE / "plugins" / sname / ("%s.py" % sname)
+                    cmd = [sys.executable, str(script)]
+                    rtvcfg = mbii_dir(cfg) / ("%s-rtvrtm.cfg" % cfg["name"])
+                    if rtvcfg.exists():
+                        cmd += ["-c", str(rtvcfg)]
+                    p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    write_pid(name, sname, p.pid)
 
                 # Scheduled restart — spawn restart (stop then start)
                 if engine_alive and restart_hours > 0:
