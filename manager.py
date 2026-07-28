@@ -647,10 +647,12 @@ def find_engine(cfg=None):
 
 
 def _plugin_alive(name):
-    """Check if a standalone plugin (launched in screen) is still running."""
+    """Check if rtvrtm python process is running for this instance."""
     try:
-        r = subprocess.run(["pgrep", "-f", "rtvrtm.*%s" % name],
-                           capture_output=True, timeout=5)
+        r = subprocess.run(
+            ["pgrep", "-f", "rtvrtm.*%s-rtvrtm\\.cfg" % name],
+            capture_output=True, timeout=5
+        )
         return r.returncode == 0
     except Exception:
         return False
