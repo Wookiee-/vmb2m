@@ -980,12 +980,8 @@ def cmd_stop(name):
 
 def cmd_update():
     """Stop all running instances, update MBII, restart them."""
-    running = []
-    for f in CONFIG_DIR.glob("*.json"):
-        name = f.stem
-        pid = read_pid(name, "engine")
-        if pid and (is_pid_alive(pid) or (pid == 1 and _engine_alive(name))):
-            running.append(name)
+    all_configs = sorted([f.stem for f in CONFIG_DIR.glob("*.json")])
+    running = [n for n in all_configs if _engine_alive(n)]
 
     if not running:
         print("[UPDATE] No running instances")
@@ -1031,14 +1027,15 @@ def cmd_update():
         except subprocess.TimeoutExpired:
             print("[UPDATE] Attempt %d timed out" % attempt)
 
-    # Restart instances
-    if running:
-        print("[UPDATE] Restarting: %s" % ", ".join(running))
-        for name in running:
-            subprocess.Popen(
-                [sys.executable, sys.argv[0], name, "start"],
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-            )
+    # Restart instances (always restart, even if detection was uncertain)
+    if not running:
+        running = all_configs
+    print("[UPDATE] Restarting: %s" % ", ".join(running))
+    for name in running:
+        subprocess.Popen(
+            [sys.executable, sys.argv[0], name, "start"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
 
     print("[UPDATE] Done")
 
