@@ -756,6 +756,8 @@ def start_standalone_plugins(cfg):
     """Spawn standalone plugins — inside screen if available."""
     procs = {}
     for pname, settings in cfg.get("plugins", {}).items():
+        if isinstance(settings, bool) and not settings:
+            continue
         if isinstance(settings, dict) and not settings.get("enabled", True):
             continue
         script = BASE / "plugins" / pname / ("%s.py" % pname)
@@ -801,6 +803,8 @@ def _init_plugins(cfg, rcon_client):
     pm.set_rcon(rcon_client.send)
 
     for name, settings in cfg.get("plugins", {}).items():
+        if isinstance(settings, bool) and not settings:
+            continue
         if isinstance(settings, dict) and not settings.get("enabled", True):
             continue
         script = BASE / "plugins" / name / ("%s.py" % name)
