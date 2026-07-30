@@ -83,7 +83,9 @@ class UpdaterPlugin(BasePlugin):
             if count <= 1:
                 return
             print("  [updater] %d updates available" % count)
-            for attempt in range(1, 11):
+            attempt = 0
+            while True:
+                attempt += 1
                 try:
                     result = subprocess.run(
                         [self.dotnet, self.dll, "-path", self.gamedir],
@@ -91,12 +93,13 @@ class UpdaterPlugin(BasePlugin):
                         capture_output=True, timeout=180,
                     )
                     if result.returncode == 0:
-                        print("  [updater] Update successful")
+                        print("  [updater] Update successful (attempt %d)" % attempt)
                         self._patch_engine_lib()
                         return
-                    time.sleep(min(30, 2 ** attempt))
+                    print("  [updater] Attempt %d failed" % attempt)
                 except subprocess.TimeoutExpired:
-                    pass
+                    print("  [updater] Attempt %d timed out" % attempt)
+                time.sleep(min(30, attempt * 5))
         except Exception as e:
             print("  [updater] Error: %s" % e)
 

@@ -1014,18 +1014,24 @@ def cmd_update():
             return
 
     print("[UPDATE] Running MBII updater...")
+    print("[UPDATE] Press Ctrl+C to stop retrying")
     gamedir = os.path.dirname(dll)
-    for attempt in range(1, 11):
+    attempt = 0
+    while True:
+        attempt += 1
         try:
             r = subprocess.run([dotnet, dll, "-path", gamedir],
                                capture_output=True, timeout=180, cwd=gamedir)
             if r.returncode == 0:
-                print("[UPDATE] MBII updated successfully")
+                print("[UPDATE] MBII updated successfully (attempt %d)" % attempt)
                 break
             print("[UPDATE] Attempt %d failed" % attempt)
-            time.sleep(min(30, 2 ** attempt))
         except subprocess.TimeoutExpired:
             print("[UPDATE] Attempt %d timed out" % attempt)
+        except KeyboardInterrupt:
+            print("\n[UPDATE] Stopped by user")
+            break
+        time.sleep(min(30, attempt * 5))
 
     # Restart instances (always restart, even if detection was uncertain)
     if not running:
