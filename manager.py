@@ -833,28 +833,37 @@ def cmd_start(name):
         warn("[%s] Engine already running (screen)" % name)
         return
 
-    # Check for updates before starting (runs once, quick check)
+    # Check for updates once per hour (shared marker, not per-instance)
+    update_marker = "/tmp/mbii_update_checked"
+    check_ok = False
     try:
-        dn = os.path.expanduser("~/.dotnet/dotnet")
-        if not os.path.exists(dn):
-            dn = "/usr/bin/dotnet"
-        if os.path.exists(dn):
-            dl = os.path.expanduser("~/openjk/MBII_CommandLine_Update_XPlatform.dll")
-            if not os.path.exists(dl):
-                dl = os.path.join(os.path.dirname(__file__), "updater", "MBII_CommandLine_Update_XPlatform.dll")
-            if os.path.exists(dl) and os.path.exists(dn):
-                r = subprocess.run([dn, dl, "-c", "-path", os.path.dirname(dl)],
-                                   capture_output=True, timeout=60)
-                out = r.stdout.decode(errors="replace").strip()
-                for line in out.split("\n"):
-                    try:
-                        if int(line.strip()) > 1:
-                            info("[%s] Updates available, applying..." % name)
-                            subprocess.run([dn, dl, "-path", os.path.dirname(dl)],
-                                           capture_output=True, timeout=180, cwd=os.path.dirname(dl))
-                            break
-                    except ValueError:
-                        continue
+        if os.path.exists(update_marker):
+            mtime = os.path.getmtime(update_marker)
+            check_ok = (time.time() - mtime) < 3600
+        if not check_ok:
+            dn = os.path.expanduser("~/.dotnet/dotnet")
+            if not os.path.exists(dn):
+                dn = "/usr/bin/dotnet"
+            if os.path.exists(dn):
+                dl = os.path.expanduser("~/openjk/MBII_CommandLine_Update_XPlatform.dll")
+                if not os.path.exists(dl):
+                    dl = os.path.join(os.path.dirname(__file__), "updater", "MBII_CommandLine_Update_XPlatform.dll")
+                if os.path.exists(dl) and os.path.exists(dn):
+                    r = subprocess.run([dn, dl, "-c", "-path", os.path.dirname(dl)],
+                                       capture_output=True, timeout=60)
+                    out = r.stdout.decode(errors="replace").strip()
+                    for line in out.split("\n"):
+                        try:
+                            if int(line.strip()) > 1:
+                                info("[%s] Updates available, applying..." % name)
+                                subprocess.run([dn, dl, "-path", os.path.dirname(dl)],
+                                               capture_output=True, timeout=180, cwd=os.path.dirname(dl))
+                                break
+                        except ValueError:
+                            continue
+                    # Mark as checked regardless of result
+                    with open(update_marker, "w") as f:
+                        f.write(str(int(time.time())))
     except Exception:
         pass
 
