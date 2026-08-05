@@ -80,23 +80,33 @@ RTVRTM_FIELD_MAP = {
     "rtm second turn": "rtm_second_turn", "rtm change immediately": "rtm_change_immediately",
 }
 def load_global_config():
-    """Read mbii.conf for global defaults (paths, engine, game)."""
-    conf = BASE / "mbii.conf"
-    if not conf.exists():
+    """Read shared /etc/mbii.conf first (multi-user), then local mbii.conf fallback."""
+    configs = []
+    etc_conf = Path("/etc/mbii.conf")
+    local_conf = BASE / "mbii.conf"
+    if etc_conf.exists():
+        configs.append(str(etc_conf))
+    if local_conf.exists():
+        configs.append(str(local_conf))
+    if not configs:
         return {}
-    cfg = configparser.ConfigParser()
-    cfg.read(str(conf))
+
     result = {}
-    if cfg.has_section("locations"):
-        for key in ("mbii_path", "config_path"):
-            val = cfg.get("locations", key, fallback="").strip()
-            if val:
-                result[key] = val
-    if cfg.has_section("dedicated"):
-        for key in ("engine", "game"):
-            val = cfg.get("dedicated", key, fallback="").strip()
-            if val:
-                result[key] = val
+    for conf in configs:
+        cfg = configparser.ConfigParser()
+        cfg.read(conf)
+        if cfg.has_section("locations"):
+            for key in ("mbii_path", "config_path"):
+                val = cfg.get("locations", key, fallback="").strip()
+                if val:
+                    result[key] = val
+        if cfg.has_section("dedicated"):
+            for key in ("engine", "game"):
+                val = cfg.get("dedicated", key, fallback="").strip()
+                if val:
+                    result[key] = val
+        if result:
+            break  # First config file with values wins
     return result
 
 
@@ -803,6 +813,8 @@ def _init_plugins(cfg, rcon_client):
     pm.set_rcon(rcon_client.send)
 
     for name, settings in cfg.get("plugins", {}).items():
+        if name == "updater" and not cfg.get("updater", True):
+            continue
         if isinstance(settings, bool) and not settings:
             continue
         if isinstance(settings, dict) and not settings.get("enabled", True):
@@ -834,46 +846,47 @@ def cmd_start(name):
         return
 
     # Check for updates once per hour, serialized via flock (shared, not per-instance)
-    update_lock = "/tmp/mbii_update.lock"
-    try:
-        import fcntl
-        lock_fd = open(update_lock, "a+")
-        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+    if cfg.get("updater", True):
+        update_lock = "/tmp/mbii_update.lock"
         try:
-            lock_fd.seek(0)
-            last = lock_fd.read().strip()
-            if not last or (time.time() - float(last)) > 3600:
-                dn = os.path.expanduser("~/.dotnet/dotnet")
-                if not os.path.exists(dn):
-                    dn = "/usr/bin/dotnet"
-                if os.path.exists(dn):
-                    dl = os.path.expanduser("~/openjk/MBII_CommandLine_Update_XPlatform.dll")
-                    if not os.path.exists(dl):
-                        dl = os.path.join(os.path.dirname(__file__), "updater", "MBII_CommandLine_Update_XPlatform.dll")
-                    if os.path.exists(dl) and os.path.exists(dn):
-                        r = subprocess.run([dn, dl, "-c", "-path", os.path.dirname(dl)],
-                                           capture_output=True, timeout=60)
-                        out = r.stdout.decode(errors="replace").strip()
-                        for line in out.split("\n"):
-                            try:
-                                if int(line.strip()) > 1:
-                                    info("[%s] Updates available, applying..." % name)
-                                    subprocess.run([dn, dl, "-path", os.path.dirname(dl)],
-                                                   capture_output=True, timeout=180, cwd=os.path.dirname(dl))
-                                    break
-                            except ValueError:
-                                continue
+            import fcntl
+            lock_fd = open(update_lock, "a+")
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            try:
                 lock_fd.seek(0)
-                lock_fd.truncate()
-                lock_fd.write(str(int(time.time())))
-                lock_fd.flush()
-        finally:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-            lock_fd.close()
-    except ImportError:
-        pass  # Non-Linux: skip lock, rely on updater plugin
-    except Exception:
-        pass
+                last = lock_fd.read().strip()
+                if not last or (time.time() - float(last)) > 3600:
+                    dn = os.path.expanduser("~/.dotnet/dotnet")
+                    if not os.path.exists(dn):
+                        dn = "/usr/bin/dotnet"
+                    if os.path.exists(dn):
+                        dl = os.path.expanduser("~/openjk/MBII_CommandLine_Update_XPlatform.dll")
+                        if not os.path.exists(dl):
+                            dl = os.path.join(os.path.dirname(__file__), "updater", "MBII_CommandLine_Update_XPlatform.dll")
+                        if os.path.exists(dl) and os.path.exists(dn):
+                            r = subprocess.run([dn, dl, "-c", "-path", os.path.dirname(dl)],
+                                               capture_output=True, timeout=60)
+                            out = r.stdout.decode(errors="replace").strip()
+                            for line in out.split("\n"):
+                                try:
+                                    if int(line.strip()) > 1:
+                                        info("[%s] Updates available, applying..." % name)
+                                        subprocess.run([dn, dl, "-path", os.path.dirname(dl)],
+                                                       capture_output=True, timeout=180, cwd=os.path.dirname(dl))
+                                        break
+                                except ValueError:
+                                    continue
+                    lock_fd.seek(0)
+                    lock_fd.truncate()
+                    lock_fd.write(str(int(time.time())))
+                    lock_fd.flush()
+            finally:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                lock_fd.close()
+        except ImportError:
+            pass
+        except Exception:
+            pass
 
     info("[%s] Launching..." % name)
     engine = start_engine(cfg)

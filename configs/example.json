@@ -1,4 +1,5 @@
 {
+  "updater": true,
   "server": {
     "host_name": "^1My ^2Server",
     "port": 29070,
