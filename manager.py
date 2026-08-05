@@ -80,33 +80,23 @@ RTVRTM_FIELD_MAP = {
     "rtm second turn": "rtm_second_turn", "rtm change immediately": "rtm_change_immediately",
 }
 def load_global_config():
-    """Read shared /etc/mbii.conf first (multi-user), then local mbii.conf fallback."""
-    configs = []
-    etc_conf = Path("/etc/mbii.conf")
-    local_conf = BASE / "mbii.conf"
-    if etc_conf.exists():
-        configs.append(str(etc_conf))
-    if local_conf.exists():
-        configs.append(str(local_conf))
-    if not configs:
+    """Read mbii.conf for global defaults (paths, engine, game)."""
+    conf = BASE / "mbii.conf"
+    if not conf.exists():
         return {}
-
+    cfg = configparser.ConfigParser()
+    cfg.read(str(conf))
     result = {}
-    for conf in configs:
-        cfg = configparser.ConfigParser()
-        cfg.read(conf)
-        if cfg.has_section("locations"):
-            for key in ("mbii_path", "config_path"):
-                val = cfg.get("locations", key, fallback="").strip()
-                if val:
-                    result[key] = val
-        if cfg.has_section("dedicated"):
-            for key in ("engine", "game"):
-                val = cfg.get("dedicated", key, fallback="").strip()
-                if val:
-                    result[key] = val
-        if result:
-            break  # First config file with values wins
+    if cfg.has_section("locations"):
+        for key in ("mbii_path", "config_path"):
+            val = cfg.get("locations", key, fallback="").strip()
+            if val:
+                result[key] = val
+    if cfg.has_section("dedicated"):
+        for key in ("engine", "game"):
+            val = cfg.get("dedicated", key, fallback="").strip()
+            if val:
+                result[key] = val
     return result
 
 
