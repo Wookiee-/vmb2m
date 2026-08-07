@@ -896,7 +896,9 @@ def cmd_start(name):
     log_path = mbii_dir(cfg) / ("%s-games.log" % name)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     if not log_path.exists():
-        log_path.touch()  # Create empty log so rtvrtm can find it
+        log_path.touch()
+    else:
+        log_path.write_text("")  # Clear old log on start/restart
     watcher = LogWatcher(str(log_path), pm)
     watcher.start()
 
